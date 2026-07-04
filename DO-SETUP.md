@@ -12,18 +12,30 @@ you want to understand or control each step. ~10 minutes.
   project (free tier is fine) — or skip it and use the `openai-codex` zero-key path first.
 - A GitHub repo (empty is fine) for your agent's knowledge base.
 
-## Step 1 — Create the droplet
+## Step 1 — Create the droplet (self-bootstrapping)
+
+**Recommended — DigitalOcean UI + a startup script.** Create → Droplets, pick
+**Ubuntu 24.04**, size **2 GB / 1 CPU** (`s-1vcpu-2gb` — **2 GB is the floor**, the
+image build OOMs on 1 GB), and **SSH-key** auth (select your key). Under
+**Advanced options → Add Initialization scripts (Startup scripts)**, paste:
 
 ```bash
-./create-droplet.sh --name hermes-1
+#!/bin/bash
+curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/bootstrap.sh | bash
 ```
 
-Uses `s-1vcpu-2gb` by default. **2 GB is the floor** — the Hermes image build
-runs out of memory on 1 GB. Prints the droplet IP.
+DigitalOcean runs this as **root on first boot**, so the droplet hardens itself and
+installs Hermes automatically — **Step 2 happens on its own.** 🔒 Only `bootstrap.sh`
+(no secrets) belongs here; **never** `install-agent.sh` — its Bitwarden token would be
+exposed in the droplet's metadata.
 
-## Step 2 — Harden + install Hermes (as root)
+**CLI alternative:** `./create-droplet.sh --name hermes-1 --bootstrap` does the same
+via `doctl` (omit `--bootstrap` to create only).
 
-SSH into the droplet as root, then run bootstrap **on the box**:
+## Step 2 — Harden + install Hermes (as root) — *skip if you used the startup script*
+
+Only needed if you created a plain droplet (no startup script, no `--bootstrap`).
+SSH in as root, then run bootstrap **on the box**:
 
 ```bash
 ssh root@<ip>
@@ -35,16 +47,15 @@ curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/ma
 > without quoting; an unquoted pipe runs `bash` on your **laptop**, not the droplet,
 > and the script aborts with "must be run as root".
 
-This:
+Either way, bootstrap:
 - hardens the box — UFW (SSH only; the dashboard is localhost), fail2ban, SSH
   key-only, an admin `zuser-XXXX` account, 2 GB swap;
 - installs Docker + the compose plugin;
 - clones `hermes-agent`, builds the image, and brings up the stack (`gateway` +
   `dashboard`) as the `hermes` user.
 
-The gateway is up but has no model or agent yet — that's step 4.
-
-> You can combine steps 1–2 with `./create-droplet.sh --name hermes-1 --bootstrap`.
+The gateway is up but has no model or agent yet — that's step 4. Watch a
+startup-script boot finish with `ssh root@<ip> tail -f /var/log/cloud-init-output.log`.
 
 ## Step 3 — Set up secrets in Bitwarden
 
