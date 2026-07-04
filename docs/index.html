@@ -919,8 +919,8 @@
         <div class="prereqs-card">
             <div class="prereqs-label">Before you start</div>
             <ul>
-                <li>A <a href="https://www.digitalocean.com" target="_blank" rel="noopener">DigitalOcean account</a> with <a href="https://docs.digitalocean.com/reference/doctl/how-to/install/" target="_blank" rel="noopener"><code>doctl</code></a> installed + authenticated.</li>
-                <li>An SSH key uploaded to your DO account.</li>
+                <li>A <a href="https://www.digitalocean.com" target="_blank" rel="noopener">DigitalOcean account</a> — create the droplet in the web UI (no CLI needed), or install <a href="https://docs.digitalocean.com/reference/doctl/how-to/install/" target="_blank" rel="noopener"><code>doctl</code></a> for the scripted path.</li>
+                <li>An SSH key in your DO account — select it when creating the droplet (SSH-key auth, not password).</li>
                 <li>A <a href="https://github.com" target="_blank" rel="noopener">GitHub repo</a> (empty is fine) for the agent's knowledge base.</li>
                 <li>(Optional) a <a href="https://bitwarden.com/products/secrets-manager/" target="_blank" rel="noopener">Bitwarden Secrets Manager</a> project — or start zero-key with <code>openai-codex</code>.</li>
             </ul>
@@ -928,15 +928,15 @@
     </section>
 
     <section class="paths" id="how">
-        <h2 class="section-heading">How it works — three scripts</h2>
-        <p class="section-subtitle">Each does one job and is safe to re-run. Together they take you from nothing to a live agent.</p>
+        <h2 class="section-heading">How it works — three steps</h2>
+        <p class="section-subtitle">Create a droplet, then two scripts do the rest. Each is safe to re-run.</p>
         <div class="paths-grid">
-            <a class="path-card" href="https://github.com/zenithventure/hermes-agent-teams/blob/main/create-droplet.sh">
+            <a class="path-card" href="https://www.digitalocean.com/products/droplets" target="_blank" rel="noopener">
                 <span class="path-num">1</span>
-                <div class="path-eyebrow">Your machine</div>
-                <h3>create-droplet.sh</h3>
-                <p><code>doctl</code> creates an Ubuntu droplet (2&nbsp;GB floor — the image build OOMs on 1&nbsp;GB). Pass <code>--bootstrap</code> to chain the next step automatically.</p>
-                <div class="path-meta">doctl · ~1 min</div>
+                <div class="path-eyebrow">DigitalOcean UI</div>
+                <h3>Create the droplet</h3>
+                <p>Spin up an <strong>Ubuntu 24.04</strong> droplet, <strong>2&nbsp;GB RAM</strong> (the floor — the image build OOMs on 1&nbsp;GB), <strong>SSH-key</strong> auth. Prefer the CLI? <code>create-droplet.sh</code> does the same with <code>doctl</code>.</p>
+                <div class="path-meta">web UI · ~1 min</div>
             </a>
             <a class="path-card" href="https://github.com/zenithventure/hermes-agent-teams/blob/main/bootstrap.sh">
                 <span class="path-num">2</span>
@@ -957,7 +957,7 @@
 
     <section class="do-deploy" id="deploy">
         <h2 class="section-heading">Deploy to DigitalOcean</h2>
-        <p class="section-subtitle">One agent per droplet, deployed as a Docker Compose stack. Four steps from zero to "say hello".</p>
+        <p class="section-subtitle">One agent per droplet, deployed as a Docker Compose stack. Five steps from a bare droplet to "say hello".</p>
 
         <div class="do-banner">
             <h3>Hermes runs one agent per droplet.</h3>
@@ -998,14 +998,23 @@
             <div class="do-step">
                 <div class="do-step-number">1</div>
                 <div>
-                    <div class="step-label">On your machine · needs doctl</div>
-                    <h3>Create + harden + install Hermes</h3>
-                    <p>Creates the droplet and (with <code>--bootstrap</code>) hardens it, installs Docker, and brings up the Hermes stack. The gateway is up but has no model or agent yet — that's step 3.</p>
-                    <div class="step-command" onclick="copyCommand(this)" data-copy="./create-droplet.sh --name hermes-1 --bootstrap"><span class="prompt">$ </span>./create-droplet.sh --name hermes-1 --bootstrap<button class="copy-icon" aria-label="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg></button></div>
+                    <div class="step-label">In the DigitalOcean web console</div>
+                    <h3>Create the droplet</h3>
+                    <p><strong>Create → Droplets.</strong> Choose <strong>Ubuntu 24.04 (LTS)</strong>, size <strong>Basic · Regular · 2&nbsp;GB / 1&nbsp;CPU</strong> (<code>s-1vcpu-2gb</code>, ~$12/mo — 2&nbsp;GB is the floor, the build OOMs on 1&nbsp;GB), and <strong>SSH Key</strong> auth (select your key — <em>not</em> a password, or hardening will lock you out). Create it, then copy the droplet's <strong>public IP</strong>.</p>
+                    <p class="do-note"><strong>Prefer the CLI?</strong> <code>./create-droplet.sh --name hermes-1</code> does the same via <code>doctl</code> — add <code>--bootstrap</code> to chain step&nbsp;2 automatically.</p>
                 </div>
             </div>
             <div class="do-step">
                 <div class="do-step-number">2</div>
+                <div>
+                    <div class="step-label">On the droplet · as root</div>
+                    <h3>Harden + install Hermes</h3>
+                    <p>SSH in as root and run bootstrap. It hardens the box (UFW, fail2ban, SSH key-only, an admin user, swap), installs Docker, and builds + starts the Hermes stack. ~5&ndash;8&nbsp;min. The gateway comes up with no model or agent yet — that's steps 3&ndash;4.</p>
+                    <div class="step-command" onclick="copyCommand(this)" data-copy="ssh root@<ip>&#10;curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/bootstrap.sh | bash"><span class="prompt">$ </span>ssh root@&lt;ip&gt;<br><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/bootstrap.sh | bash<button class="copy-icon" aria-label="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg></button></div>
+                </div>
+            </div>
+            <div class="do-step">
+                <div class="do-step-number">3</div>
                 <div>
                     <div class="step-label">In the Bitwarden web app · or skip for now</div>
                     <h3>Set up secrets in Bitwarden</h3>
@@ -1014,7 +1023,7 @@
                 </div>
             </div>
             <div class="do-step">
-                <div class="do-step-number">3</div>
+                <div class="do-step-number">4</div>
                 <div>
                     <div class="step-label">On the droplet · as the hermes user</div>
                     <h3>Install your agent</h3>
@@ -1023,7 +1032,7 @@
                 </div>
             </div>
             <div class="do-step">
-                <div class="do-step-number">4</div>
+                <div class="do-step-number">5</div>
                 <div>
                     <div class="step-label">Still on the droplet · in ~/hermes-agent</div>
                     <h3>Say hello</h3>
