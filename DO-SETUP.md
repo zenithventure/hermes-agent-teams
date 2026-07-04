@@ -44,7 +44,9 @@ In the Bitwarden web app (Secrets Manager):
 
 1. Create a **project** (note its UUID).
 2. Add your keys as **secrets named after their env vars** — e.g.
-   `ANTHROPIC_API_KEY`, and later `TELEGRAM_BOT_TOKEN` if you add a channel.
+   `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` set to your OpenRouter key), plus
+   `KB_GITHUB_TOKEN` for knowledge-base pushes, and later `TELEGRAM_BOT_TOKEN`
+   for a channel.
 3. Create a **machine account** with **Read** access to the project.
 4. Generate an **access token** for it (starts with `0.`).
 
@@ -63,15 +65,17 @@ sudo -u hermes -i
 curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/install-agent.sh \
   | bash -s -- --agent _template \
       --bws-token 0.<token> --bws-project <uuid> \
-      --kb-repo git@github.com:<you>/<kb-repo>.git
+      --kb-repo https://github.com/<you>/<kb-repo>.git
 ```
 
 This seeds the agent (`SOUL.md`, memories, skills), writes only the bootstrap
 token to `~/.hermes/.env` (0600), sets up the knowledge base, and restarts the stack.
 
-**Add the printed deploy key** to your knowledge-base repo (GitHub → the repo →
-Settings → Deploy keys → Add, and **check "Allow write access"**), then re-run the
-installer so it can push the seed.
+For knowledge-base pushes, add a fine-grained **GitHub PAT** to Bitwarden as
+`KB_GITHUB_TOKEN` (GitHub → Settings → Developer settings → Fine-grained tokens;
+scope it to the KB repo with **Contents: Read and write**). The agent pushes over
+HTTPS with it — nothing else touches disk. If you add it after this step, the
+agent pushes the seed on its next run (or re-run the installer).
 
 If you chose `openai-codex`, run the OAuth command the installer prints:
 

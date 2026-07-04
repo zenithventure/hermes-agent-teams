@@ -12,17 +12,31 @@ agent:
   name: "Hermes"
 
 model:
-  # Provider:
-  #   "anthropic"    → ANTHROPIC_API_KEY (from Bitwarden)   default claude-opus-4.6
-  #   "openai-api"   → OPENAI_API_KEY (from Bitwarden)      default gpt-4o
-  #   "openai-codex" → ChatGPT Plus/Pro subscription OAuth, NO key (zero-key start)
+  # Pick ONE of the three provider options below (uncomment its block). Keys
+  # resolve from Bitwarden — name each secret after its env var (see Secrets).
+  #
+  # 1) Anthropic API — most capable default. Needs ANTHROPIC_API_KEY.
   provider: "anthropic"
   default: "claude-opus-4.6"
+  #
+  # 2) Codex — ChatGPT Plus/Pro subscription via OAuth. The ZERO-KEY start:
+  #    no API key at all, just a one-time login on the droplet (install-agent.sh
+  #    prints the command). Uncomment these two lines and comment out (1).
+  # provider: "openai-codex"
+  # default: "gpt-5.5"
+  #
+  # 3) OpenRouter — one key, hundreds of models. It's OpenAI-compatible, so it
+  #    runs through the "openai-api" provider with OpenRouter's base_url. Put
+  #    your OpenRouter key in the OPENAI_API_KEY secret in Bitwarden.
+  # provider: "openai-api"
+  # base_url: "https://openrouter.ai/api/v1"
+  # default: "anthropic/claude-sonnet-4"   # any OpenRouter model slug
 
 # ── Secrets: Bitwarden Secrets Manager (the student baseline) ─────────
 # Keys are pulled into the gateway's process memory at startup. Name each
-# Bitwarden secret after its env var: ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN,
-# BRAVE_SEARCH_API_KEY, … Rotation is a single edit in the Bitwarden web app.
+# Bitwarden secret after its env var: ANTHROPIC_API_KEY (or OPENAI_API_KEY for
+# OpenRouter), KB_GITHUB_TOKEN (knowledge-base pushes), TELEGRAM_BOT_TOKEN, …
+# Rotation is a single edit in the Bitwarden web app.
 # __BWS_PROJECT_ID__ is filled in by deploy-agent.sh from --bws-project.
 secrets:
   bitwarden:

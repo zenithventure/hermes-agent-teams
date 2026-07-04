@@ -74,7 +74,9 @@ cd workspace/kb
 git add -A && git commit -m "kb: <short summary>" && git push
 ```
 
-A cron/heartbeat also pushes periodically, so no knowledge is lost if the
+Auth just works: the remote is HTTPS and a git credential helper reads the
+`KB_GITHUB_TOKEN` env var (a GitHub PAT pulled from Bitwarden at startup) — you
+never handle the token. Push after every ingest so no knowledge is lost if the
 droplet dies. Never commit secrets to the KB.
 
 ## Guardrails
