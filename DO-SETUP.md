@@ -23,9 +23,17 @@ runs out of memory on 1 GB. Prints the droplet IP.
 
 ## Step 2 — Harden + install Hermes (as root)
 
+SSH into the droplet as root, then run bootstrap **on the box**:
+
 ```bash
-ssh root@<ip> 'curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/bootstrap.sh | bash'
+ssh root@<ip>
+# now on the droplet, as root:
+curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/bootstrap.sh | bash
 ```
+
+> Run it as two steps like this — don't fold it into `ssh root@<ip> 'curl … | bash'`
+> without quoting; an unquoted pipe runs `bash` on your **laptop**, not the droplet,
+> and the script aborts with "must be run as root".
 
 This:
 - hardens the box — UFW (SSH only; the dashboard is localhost), fail2ban, SSH
