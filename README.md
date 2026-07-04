@@ -28,7 +28,7 @@ cd ~/hermes-agent && docker compose exec -T gateway hermes -z "say hello"
 ```
 
 Prefer to do it by hand? See [DO-SETUP.md](DO-SETUP.md). New here? The
-[landing page](https://zenithventure.github.io/hermes-agent-teams/) walks through
+[landing page](https://hermes.zenithstudio.app) walks through
 the same flow visually.
 
 ## The three pieces
