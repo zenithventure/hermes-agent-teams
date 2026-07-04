@@ -21,7 +21,7 @@ ssh root@<ip>           # then: sudo -u hermes -i
 curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/install-agent.sh \
   | bash -s -- --agent _template \
       --bws-token 0.<token> --bws-project <uuid> \
-      --kb-repo git@github.com:<you>/<kb-repo>.git
+      --kb-repo https://github.com/<you>/<kb-repo>.git
 
 # 3. Say hello
 cd ~/hermes-agent && docker compose exec -T gateway hermes -z "say hello"
@@ -44,13 +44,17 @@ All are idempotent. Author agents from [`_template/`](_template/) — see
 
 ## Model provider
 
-`config.yaml` picks how the model authenticates:
+`config.yaml` picks how the model authenticates. Three options:
 
-| `provider` | Auth | Key needed? | Default model |
-|-----------|------|-------------|---------------|
-| `anthropic` | `ANTHROPIC_API_KEY` (from Bitwarden) | yes | `claude-opus-4.6` |
-| `openai-api` | `OPENAI_API_KEY` (from Bitwarden) | yes | `gpt-4o` |
-| `openai-codex` | ChatGPT Plus/Pro subscription OAuth | **no** | `gpt-5.5` |
+| Choice | `provider` | Auth | Key needed? | Model |
+|--------|-----------|------|-------------|-------|
+| **Anthropic API** | `anthropic` | `ANTHROPIC_API_KEY` (from Bitwarden) | yes | `claude-opus-4.6` |
+| **Codex** (ChatGPT sub) | `openai-codex` | ChatGPT Plus/Pro subscription OAuth | **no** | `gpt-5.5` |
+| **OpenRouter** | `openai-api` + `base_url` | `OPENAI_API_KEY` = your OpenRouter key (from Bitwarden) | yes | any OpenRouter slug |
+
+OpenRouter is OpenAI-compatible, so it runs through the `openai-api` provider with
+`base_url: https://openrouter.ai/api/v1` — see the commented block in
+[`_template/config.yaml`](_template/config.yaml).
 
 `openai-codex` is the **zero-key start**: no API key at all, just a one-time OAuth
 login on the droplet (the installer prints the command). Great for a first run
@@ -88,8 +92,9 @@ articles under `wiki/`, and it keeps `INDEX.md` + `log.md` current.
 
 - It lives at `~/.hermes/workspace/kb/` on the droplet and is a **GitHub repo**.
   Create an empty repo, pass it as `--kb-repo`, and the installer seeds it.
-- The installer prints a **deploy key** — add it to the repo (Settings → Deploy
-  keys, allow write) so the agent can push.
+- Auth is a fine-grained **GitHub PAT** stored in Bitwarden as `KB_GITHUB_TOKEN`
+  (Contents: Read+Write on the KB repo). The agent pushes over HTTPS with it —
+  nothing extra on disk, rotate it in the Bitwarden web app.
 - Open the **same repo in Obsidian** on your laptop via the `obsidian-git` plugin
   — that's your window into everything the agent has learned. This also serves as
   the off-box backup of the agent's most valuable state.

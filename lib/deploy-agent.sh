@@ -194,47 +194,75 @@ seed_skills() {
 }
 
 # ── 6. Knowledge base — GitHub-backed wiki ─────────────────
-KB_KEY="${HOME}/.ssh/hermes_kb_ed25519"
+# Auth = a fine-grained GitHub PAT stored in Bitwarden as KB_GITHUB_TOKEN and
+# injected into the gateway's env at startup, so the RUNNING AGENT can push over
+# HTTPS with no key on disk. A git credential helper reads $KB_GITHUB_TOKEN at
+# push time; the token value is never written to .git/config or the URL.
 
-ensure_kb_deploy_key() {
-    mkdir -p "${HOME}/.ssh"
-    chmod 700 "${HOME}/.ssh"
-    if [[ ! -f "$KB_KEY" ]]; then
-        ssh-keygen -t ed25519 -N "" -C "hermes-kb-$(hostname)" -f "$KB_KEY" >/dev/null
-        log_ok "Generated KB deploy key"
+# The helper git runs on every fetch/push: emits creds from the env for `get`.
+# shellcheck disable=SC2016  # ${KB_GITHUB_TOKEN} must stay literal — the shell
+# git spawns expands it at push time, using the token from the process env.
+KB_CRED_HELPER='!f() { if test "$1" = get; then echo username=x-access-token; echo "password=${KB_GITHUB_TOKEN}"; fi; }; f'
+
+# git@github.com:owner/repo(.git) / ssh://… → https://github.com/owner/repo.git
+normalize_kb_url() {
+    local url="$1"
+    case "$url" in
+        git@github.com:*)        url="https://github.com/${url#git@github.com:}" ;;
+        ssh://git@github.com/*)  url="https://github.com/${url#ssh://git@github.com/}" ;;
+    esac
+    [[ "$url" == *.git ]] || url="${url}.git"
+    printf '%s' "$url"
+}
+
+# Host-side seed push needs the token: prefer the env, else pull it from
+# Bitwarden with the bootstrap token (needs the `bws` CLI + jq). Empty = skip.
+resolve_kb_token() {
+    if [[ -n "${KB_GITHUB_TOKEN:-}" ]]; then printf '%s' "$KB_GITHUB_TOKEN"; return; fi
+    if [[ -n "$BWS_TOKEN" ]] && command -v bws &>/dev/null && command -v jq &>/dev/null; then
+        BWS_ACCESS_TOKEN="$BWS_TOKEN" bws secret list ${BWS_PROJECT:+"$BWS_PROJECT"} -o json 2>/dev/null \
+            | jq -r '.[] | select(.key=="KB_GITHUB_TOKEN") | .value' 2>/dev/null | head -1
     fi
 }
 
-kb_git() {
-    GIT_SSH_COMMAND="ssh -i ${KB_KEY} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
-        git "$@"
+# Persist the helper + HTTPS remote into the repo so the in-container agent
+# (which doesn't go through kb_git) pushes with the same env token.
+configure_kb_auth() {
+    git -C "$1" config credential.helper "$KB_CRED_HELPER"
+    git -C "$1" remote set-url origin "$KB_REPO" 2>/dev/null \
+        || git -C "$1" remote add origin "$KB_REPO"
 }
+
+# Every git call injects the helper inline (so clone works before .git exists)
+# and exports the resolved token into the env the helper reads.
+kb_git() { KB_GITHUB_TOKEN="${KB_TOKEN:-${KB_GITHUB_TOKEN:-}}" git -c credential.helper="$KB_CRED_HELPER" "$@"; }
 
 seed_kb() {
     [[ -n "$KB_REPO" ]] || { log_warn "No --kb-repo — skipping knowledge base"; return; }
-    ensure_kb_deploy_key
+    KB_REPO="$(normalize_kb_url "$KB_REPO")"
+    KB_TOKEN="$(resolve_kb_token || true)"
     mkdir -p "$WORKSPACE_DIR"
 
     if [[ -d "${KB_DIR}/.git" ]]; then
+        configure_kb_auth "$KB_DIR"
         log_step "  Updating existing knowledge base..."
-        kb_git -C "$KB_DIR" pull --ff-only origin "$KB_BRANCH" || log_warn "KB pull failed — check the deploy key"
-        log_ok "KB updated at ${KB_DIR}"
+        kb_git -C "$KB_DIR" pull --ff-only origin "$KB_BRANCH" \
+            || log_warn "KB pull failed — is KB_GITHUB_TOKEN in Bitwarden with repo access?"
+        log_ok "KB ready at ${KB_DIR}"
         return
     fi
 
     log_step "  Setting up knowledge base at ${KB_DIR}..."
     if ! kb_git clone --branch "$KB_BRANCH" "$KB_REPO" "$KB_DIR" 2>/dev/null \
         && ! kb_git clone "$KB_REPO" "$KB_DIR" 2>/dev/null; then
-        log_warn "Could not clone ${KB_REPO}."
-        log_warn "Add this deploy key to the repo (Settings → Deploy keys, allow write):"
-        echo ""
-        sed 's/^/      /' "${KB_KEY}.pub"
-        echo ""
-        log_warn "Then re-run install-agent.sh."
-        return
+        # Fresh/empty/private-without-token repo: init locally, seed below.
+        log_step "  Clone skipped — initializing a fresh KB locally..."
+        mkdir -p "$KB_DIR"
+        git -C "$KB_DIR" init -q -b "$KB_BRANCH"
     fi
+    configure_kb_auth "$KB_DIR"
 
-    # Empty repo? Seed it from the agent's kb-seed/ and push.
+    # Empty repo? Seed it from the agent's kb-seed/ and (with a token) push.
     if [[ -z "$(ls -A "$KB_DIR" 2>/dev/null | grep -v '^\.git$' || true)" ]]; then
         if [[ -d "${AGENT_DIR}/kb-seed" ]]; then
             cp -R "${AGENT_DIR}/kb-seed/." "$KB_DIR/"
@@ -246,13 +274,12 @@ seed_kb() {
             kb_git -C "$KB_DIR" -c user.email="hermes@localhost" -c user.name="Hermes" \
                 commit -q -m "kb: seed knowledge base (Karpathy LLM Wiki)"
             kb_git -C "$KB_DIR" branch -M "$KB_BRANCH"
-            if kb_git -C "$KB_DIR" push -u origin "$KB_BRANCH" 2>/dev/null; then
+            if [[ -n "$KB_TOKEN" ]] && kb_git -C "$KB_DIR" push -u origin "$KB_BRANCH" 2>/dev/null; then
                 log_ok "Seeded + pushed the knowledge base to origin"
             else
-                log_warn "Seeded locally but push failed — add the deploy key (write access):"
-                echo ""
-                sed 's/^/      /' "${KB_KEY}.pub"
-                echo ""
+                log_warn "Seeded locally. Add a fine-grained GitHub PAT (Contents: Read+Write on the"
+                log_warn "KB repo) to Bitwarden as KB_GITHUB_TOKEN — the agent pushes on its next run,"
+                log_warn "or push now:  (cd ${KB_DIR} && KB_GITHUB_TOKEN=<pat> git push -u origin ${KB_BRANCH})"
             fi
         else
             log_warn "Repo is empty and the agent ships no kb-seed/ — nothing to seed"

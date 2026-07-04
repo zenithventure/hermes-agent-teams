@@ -55,7 +55,7 @@ my-agent/
 # On the droplet, as the hermes user:
 install-agent.sh --agent my-agent \
   --bws-token 0.<token> --bws-project <uuid> \
-  --kb-repo git@github.com:<you>/<kb-repo>.git
+  --kb-repo https://github.com/<you>/<kb-repo>.git
 
 # Edit files, then re-run to roll out changes (config.yaml + memories are preserved).
 ```
