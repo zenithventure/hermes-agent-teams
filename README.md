@@ -27,6 +27,18 @@ curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/ma
 cd ~/hermes-agent && docker compose exec -T gateway hermes -z "say hello"
 ```
 
+**No `doctl`?** Create the droplet in the DigitalOcean UI instead (Ubuntu 24.04,
+2 GB, SSH key) and paste this into **Advanced options → Startup scripts** — it
+hardens + installs Hermes on first boot, then you skip straight to step 2:
+
+```bash
+#!/bin/bash
+curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/bootstrap.sh | bash
+```
+
+Only `bootstrap.sh` (no secrets) goes in that box — never `install-agent.sh`, whose
+Bitwarden token would be exposed in the droplet's metadata.
+
 Prefer to do it by hand? See [DO-SETUP.md](DO-SETUP.md). New here? The
 [landing page](https://hermes.zenithstudio.app) walks through
 the same flow visually.
