@@ -1,0 +1,47 @@
+# Hermes Agent config — read by the container at /opt/data/config.yaml.
+# Keep this file CREDENTIAL-FREE. Every key resolves from Bitwarden (see the
+# secrets block below); the only secret on disk is the bootstrap token in
+# ~/.hermes/.env.
+#
+# This file is deployed once (it becomes runtime-managed afterwards — Hermes
+# rotates config.yaml.bak-* and edits it live). Re-deploy with --force only on
+# a fresh box, never against a live agent.
+
+agent:
+  # Rename this to your agent's name.
+  name: "Hermes"
+
+model:
+  # Provider:
+  #   "anthropic"    → ANTHROPIC_API_KEY (from Bitwarden)   default claude-opus-4.6
+  #   "openai-api"   → OPENAI_API_KEY (from Bitwarden)      default gpt-4o
+  #   "openai-codex" → ChatGPT Plus/Pro subscription OAuth, NO key (zero-key start)
+  provider: "anthropic"
+  default: "claude-opus-4.6"
+
+# ── Secrets: Bitwarden Secrets Manager (the student baseline) ─────────
+# Keys are pulled into the gateway's process memory at startup. Name each
+# Bitwarden secret after its env var: ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN,
+# BRAVE_SEARCH_API_KEY, … Rotation is a single edit in the Bitwarden web app.
+# __BWS_PROJECT_ID__ is filled in by deploy-agent.sh from --bws-project.
+secrets:
+  bitwarden:
+    enabled: true
+    access_token_env: BWS_ACCESS_TOKEN
+    project_id: "__BWS_PROJECT_ID__"
+    override_existing: true
+    auto_install: true
+
+# ── Messaging platforms (optional) ────────────────────────────────────
+# Leave empty for CLI + dashboard only. To enable a channel, add its token to
+# Bitwarden (named after its env var) and uncomment the block. Hermes DENIES
+# every user by default — set an allowlist (see README).
+platforms: {}
+#   telegram:
+#     reply_to_mode: "first"   # off | first | all
+
+# ── Remote MCP servers (optional) ─────────────────────────────────────
+# mcp_servers:
+#   asana:
+#     url: https://mcp.asana.com/mcp
+#     auth: oauth

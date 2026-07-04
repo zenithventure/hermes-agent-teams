@@ -1,0 +1,12 @@
+**/.DS_Store
+
+# Never commit secrets or live agent payloads
+*.env
+!_template/**/*.env.example
+*-secrets.yml
+*-secrets.env
+id_ed25519*
+*.pem
+
+# Local agent copies (author from _template into your own dir; keep private ones out)
+/my-agent/
