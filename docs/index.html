@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes Agent Teams — Your own self-hosted AI agent, in three commands</title>
+    <meta name="description" content="Take a bare Ubuntu droplet to a running Hermes agent (Nous Research) with a GitHub-backed knowledge base and Bitwarden-managed secrets. One agent per droplet, deployed and hardened in three commands.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #08080c;
+            --bg-secondary: #0f0f16;
+            --bg-card: #16161f;
+            --text-primary: #ffffff;
+            --text-secondary: #9d9db5;
+            --text-muted: #5e5e76;
+            --accent-green: #22c55e;
+            --accent-lime: #84cc16;
+            --accent-yellow: #eab308;
+            --accent-gradient: linear-gradient(135deg, #22c55e 0%, #84cc16 50%, #eab308 100%);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --disc-red: #ef4444;
+            --disc-yellow: #eab308;
+            --disc-green: #22c55e;
+            --disc-blue: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(8, 8, 12, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .nav-divider {
+            color: var(--text-muted);
+        }
+
+        .nav-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-link {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--bg-primary);
+            background: var(--accent-green);
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .nav-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8rem 2rem 6rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(34, 197, 94, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            background: rgba(34, 197, 94, 0.08);
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--accent-green);
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            max-width: 800px;
+            margin-bottom: 1.5rem;
+        }
+
+        .gradient-text {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin-bottom: 2.5rem;
+            line-height: 1.7;
+        }
+
+        .hero-command {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 3.5rem 1.25rem 1.5rem;
+            max-width: 720px;
+            width: 100%;
+            margin-bottom: 1.5rem;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .hero-command:hover {
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .hero-command-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-green);
+            margin-bottom: 0.75rem;
+        }
+
+        .hero-command-text {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            word-break: break-all;
+            user-select: all;
+        }
+
+        .hero-command-text .prompt {
+            color: var(--text-muted);
+            user-select: none;
+        }
+
+        .copy-icon {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.25rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: color 0.2s;
+            line-height: 0;
+        }
+
+        .copy-icon:hover {
+            color: var(--accent-green);
+        }
+
+        .copy-icon.copied {
+            color: var(--accent-green);
+        }
+
+        .copy-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .hero-arrow {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--bg-primary);
+            background: var(--accent-green);
+            padding: 1rem 2.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .hero-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+        }
+
+        /* Section base */
+        .section-heading {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            font-size: 1rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Anchor nav links inside the top bar */
+        .nav-anchors {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-right: 1.25rem;
+        }
+
+        .nav-anchors a {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .nav-anchors a:hover {
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 720px) {
+            .nav-anchors { display: none; }
+        }
+
+        /* Prereqs strip */
+        .prereqs {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 2rem 4rem;
+        }
+
+        .prereqs-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-green);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 1.25rem;
+            align-items: start;
+        }
+
+        .prereqs-card .prereqs-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-green);
+            padding-top: 0.15rem;
+            white-space: nowrap;
+        }
+
+        .prereqs-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.6rem 1.5rem;
+        }
+
+        .prereqs-card li {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .prereqs-card li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        .prereqs-card li a {
+            color: var(--accent-green);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(34, 197, 94, 0.4);
+        }
+
+        .prereqs-card li a:hover {
+            border-bottom-style: solid;
+        }
+
+        @media (max-width: 720px) {
+            .prereqs-card { grid-template-columns: 1fr; }
+        }
+
+        /* Card grids (repurposed from "choose your path") */
+        .paths {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 2rem 6rem;
+        }
+
+        .paths-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .path-card {
+            display: block;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem 1.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            position: relative;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .path-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(34, 197, 94, 0.4);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .path-card .path-eyebrow {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .path-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.6rem;
+        }
+
+        .path-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1.25rem;
+        }
+
+        .path-card .path-meta {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .path-card .path-arrow {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            color: var(--text-muted);
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .path-card:hover .path-arrow {
+            color: var(--accent-green);
+            transform: translate(3px, -3px);
+        }
+
+        .path-card.recommended {
+            border-color: rgba(34, 197, 94, 0.3);
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.04) 0%, var(--bg-card) 60%);
+        }
+
+        .path-card.recommended .path-eyebrow::after {
+            content: '· recommended';
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-left: 0.35rem;
+        }
+
+        .path-num {
+            position: absolute;
+            top: 1.4rem;
+            right: 1.6rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @media (max-width: 860px) {
+            .paths-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Preview window (repurposed for a KB wiki article) */
+        .running-preview {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 5rem 2rem;
+        }
+
+        .preview-window {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 2rem;
+        }
+
+        .preview-titlebar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .preview-titlebar .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .preview-titlebar .dot.r { background: #ef4444; }
+        .preview-titlebar .dot.y { background: #eab308; }
+        .preview-titlebar .dot.g { background: #22c55e; }
+
+        .preview-titlebar .preview-path {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        .preview-body {
+            padding: 1.5rem 1.75rem;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+        }
+
+        .preview-body .wl { color: var(--accent-lime); }
+        .preview-body .h { color: var(--text-primary); font-weight: 600; }
+        .preview-body .c { color: var(--text-muted); }
+
+        /* Collapsible structure section */
+        details.structure-details {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        details.structure-details summary {
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 1rem;
+            list-style: none;
+            transition: color 0.15s;
+        }
+
+        details.structure-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.structure-details summary:hover {
+            color: var(--text-primary);
+        }
+
+        details.structure-details summary::after {
+            content: ' ▾';
+            color: var(--text-muted);
+        }
+
+        details.structure-details[open] summary::after {
+            content: ' ▴';
+        }
+
+        /* DigitalOcean Deploy */
+        .do-deploy {
+            padding: 6rem 2rem;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .do-banner {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 16px;
+            padding: 2.5rem;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .do-banner h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .do-banner p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .do-scripts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .do-script-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .do-script-card h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .do-script-card .script-name {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-green);
+            margin-bottom: 0.75rem;
+        }
+
+        .do-script-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
+
+        .do-script-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .do-script-card ul li {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.2rem 0;
+            padding-left: 1.25rem;
+            position: relative;
+        }
+
+        .do-script-card ul li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.55rem;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        .do-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .do-step {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .do-step-number {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            flex-shrink: 0;
+            width: 2rem;
+        }
+
+        .do-step h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .do-step p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .do-step code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.8rem;
+            background: var(--bg-primary);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            color: var(--accent-green);
+        }
+
+        .do-step .step-command {
+            position: relative;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.8rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 3rem 0.75rem 1rem;
+            margin-top: 0.75rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+            line-height: 1.7;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .do-step .step-command:hover {
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .do-step .step-command .copy-icon {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+        }
+
+        .do-step .step-command .prompt {
+            color: var(--text-muted);
+        }
+
+        .do-step .step-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .do-note {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-top: 0.75rem;
+        }
+
+        .do-note strong { color: var(--text-secondary); }
+
+        /* Features */
+        .features {
+            padding: 6rem 2rem;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Structure */
+        .structure {
+            padding: 6rem 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .structure-tree {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        .structure-tree .dir {
+            color: var(--accent-green);
+        }
+
+        .structure-tree .comment {
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        footer p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                padding: 0.75rem 1.25rem;
+            }
+
+            .hero {
+                padding: 7rem 1.25rem 4rem;
+            }
+
+            .paths-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .do-scripts {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .do-step {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-left">
+            <a class="nav-logo" href="https://zenithstudio.io">Zenith</a>
+            <span class="nav-divider">/</span>
+            <span class="nav-title">Hermes Agents</span>
+        </div>
+        <div style="display:flex; align-items:center;">
+            <div class="nav-anchors">
+                <a href="#how">How it works</a>
+                <a href="#deploy">Deploy</a>
+                <a href="#kb">Knowledge base</a>
+                <a href="#secrets">Secrets</a>
+            </div>
+            <a class="nav-link" href="https://github.com/zenithventure/hermes-agent-teams">GitHub</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-badge">
+            Open source &middot; one agent per droplet &middot; GitHub-backed knowledge base
+        </div>
+        <h1>
+            Your own <span class="gradient-text">Hermes agent</span>,
+            in three commands
+        </h1>
+        <p class="hero-sub">
+            Take a bare Ubuntu droplet to a running <a href="https://github.com/NousResearch/hermes-agent" style="color:var(--accent-green);text-decoration:none;">Hermes</a> agent (Nous Research) &mdash; hardened, with a GitHub-backed knowledge base and secrets kept in Bitwarden. Your agent is <em>pure data</em>: a persona, a bit of memory, some skills, and a wiki. Edit files, re-run the installer, done.
+        </p>
+        <p class="hero-arrow" style="margin-bottom: 1.25rem;">A simple baseline for students &middot; ~$12/mo droplet &middot; ~10 minutes to first agent</p>
+        <a class="hero-cta" href="#how">See how it works ↓</a>
+    </section>
+
+    <section class="prereqs" id="prereqs">
+        <div class="prereqs-card">
+            <div class="prereqs-label">Before you start</div>
+            <ul>
+                <li>A <a href="https://www.digitalocean.com" target="_blank" rel="noopener">DigitalOcean account</a> with <a href="https://docs.digitalocean.com/reference/doctl/how-to/install/" target="_blank" rel="noopener"><code>doctl</code></a> installed + authenticated.</li>
+                <li>An SSH key uploaded to your DO account.</li>
+                <li>A <a href="https://github.com" target="_blank" rel="noopener">GitHub repo</a> (empty is fine) for the agent's knowledge base.</li>
+                <li>(Optional) a <a href="https://bitwarden.com/products/secrets-manager/" target="_blank" rel="noopener">Bitwarden Secrets Manager</a> project — or start zero-key with <code>openai-codex</code>.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="paths" id="how">
+        <h2 class="section-heading">How it works — three scripts</h2>
+        <p class="section-subtitle">Each does one job and is safe to re-run. Together they take you from nothing to a live agent.</p>
+        <div class="paths-grid">
+            <a class="path-card" href="https://github.com/zenithventure/hermes-agent-teams/blob/main/create-droplet.sh">
+                <span class="path-num">1</span>
+                <div class="path-eyebrow">Your machine</div>
+                <h3>create-droplet.sh</h3>
+                <p><code>doctl</code> creates an Ubuntu droplet (2&nbsp;GB floor — the image build OOMs on 1&nbsp;GB). Pass <code>--bootstrap</code> to chain the next step automatically.</p>
+                <div class="path-meta">doctl · ~1 min</div>
+            </a>
+            <a class="path-card" href="https://github.com/zenithventure/hermes-agent-teams/blob/main/bootstrap.sh">
+                <span class="path-num">2</span>
+                <div class="path-eyebrow">Droplet · as root</div>
+                <h3>bootstrap.sh</h3>
+                <p>Hardens the box — UFW (SSH only), fail2ban, SSH key-only, an admin user, swap — then installs Docker and brings up the Hermes stack (<code>gateway</code> + <code>dashboard</code>).</p>
+                <div class="path-meta">harden + Docker · ~5 min</div>
+            </a>
+            <a class="path-card recommended" href="https://github.com/zenithventure/hermes-agent-teams/blob/main/install-agent.sh">
+                <span class="path-num">3</span>
+                <div class="path-eyebrow">Droplet · hermes user</div>
+                <h3>install-agent.sh</h3>
+                <p>Deploys one agent from a directory (persona, memory, skills), wires the GitHub knowledge base, writes only the Bitwarden bootstrap token to disk, and restarts.</p>
+                <div class="path-meta">deploy your agent · ~1 min</div>
+            </a>
+        </div>
+    </section>
+
+    <section class="do-deploy" id="deploy">
+        <h2 class="section-heading">Deploy to DigitalOcean</h2>
+        <p class="section-subtitle">One agent per droplet, deployed as a Docker Compose stack. Four steps from zero to "say hello".</p>
+
+        <div class="do-banner">
+            <h3>Hermes runs one agent per droplet.</h3>
+            <p>A single Docker Compose stack — <code style="color:var(--accent-green)">gateway</code> + <code style="color:var(--accent-green)">dashboard</code> — sharing <code style="color:var(--accent-green)">~/.hermes</code>. No multi-agent "team": the unit is one reusable agent, which is pure data.</p>
+        </div>
+
+        <div class="do-scripts">
+            <div class="do-script-card">
+                <h4>Server + Hermes</h4>
+                <div class="script-name">bootstrap.sh</div>
+                <p>Run as root on a fresh Ubuntu 24.04 droplet. Handles hardening through to a running gateway.</p>
+                <ul>
+                    <li>Creates an admin user with SSH keys</li>
+                    <li>UFW firewall (SSH only — dashboard is localhost)</li>
+                    <li>fail2ban for brute-force protection</li>
+                    <li>Installs Docker + the compose plugin</li>
+                    <li>Creates the <code>hermes</code> service user</li>
+                    <li>Builds the image and brings up the stack</li>
+                    <li>Adds swap (the build is memory-hungry)</li>
+                </ul>
+            </div>
+            <div class="do-script-card">
+                <h4>Agent Deployer</h4>
+                <div class="script-name">install-agent.sh</div>
+                <p>Run as the <code>hermes</code> user. Deploys any agent directory in a single command.</p>
+                <ul>
+                    <li>Clones the repo (shallow, fast)</li>
+                    <li>Refreshes <code>SOUL.md</code>; seeds memory once</li>
+                    <li>Merges skills without clobbering</li>
+                    <li>Preserves runtime-managed <code>config.yaml</code></li>
+                    <li>Sets up the GitHub knowledge base</li>
+                    <li>Writes only the Bitwarden token to disk</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="do-steps">
+            <div class="do-step">
+                <div class="do-step-number">1</div>
+                <div>
+                    <div class="step-label">On your machine · needs doctl</div>
+                    <h3>Create + harden + install Hermes</h3>
+                    <p>Creates the droplet and (with <code>--bootstrap</code>) hardens it, installs Docker, and brings up the Hermes stack. The gateway is up but has no model or agent yet — that's step 3.</p>
+                    <div class="step-command" onclick="copyCommand(this)" data-copy="./create-droplet.sh --name hermes-1 --bootstrap"><span class="prompt">$ </span>./create-droplet.sh --name hermes-1 --bootstrap<button class="copy-icon" aria-label="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg></button></div>
+                </div>
+            </div>
+            <div class="do-step">
+                <div class="do-step-number">2</div>
+                <div>
+                    <div class="step-label">In the Bitwarden web app · or skip for now</div>
+                    <h3>Set up secrets in Bitwarden</h3>
+                    <p>Create a <strong>project</strong>, add your keys as secrets <strong>named after their env vars</strong> (<code>ANTHROPIC_API_KEY</code>, …), create a machine account with Read access, and generate an access token (starts with <code>0.</code>). Only that token reaches the box.</p>
+                    <p class="do-note"><strong>Zero-key first run:</strong> skip this and set <code>provider: openai-codex</code> — no API key at all, just a one-time OAuth login the installer prints. Add Bitwarden when you add an API-key provider or a channel.</p>
+                </div>
+            </div>
+            <div class="do-step">
+                <div class="do-step-number">3</div>
+                <div>
+                    <div class="step-label">On the droplet · as the hermes user</div>
+                    <h3>Install your agent</h3>
+                    <p>Seeds the agent, wires the knowledge base, and writes only the bootstrap token to <code>~/.hermes/.env</code> (0600). <strong>Add the printed deploy key</strong> to your KB repo (Settings → Deploy keys, allow write), then re-run so it can push the seed.</p>
+                    <div class="step-command" onclick="copyCommand(this)" data-copy="sudo -u hermes -i&#10;curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/install-agent.sh | bash -s -- --agent _template --bws-token 0.<token> --bws-project <uuid> --kb-repo git@github.com:<you>/<kb-repo>.git"><span class="prompt">$ </span>sudo -u hermes -i<br><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main/install-agent.sh \<br>&nbsp;&nbsp;| bash -s -- --agent _template \<br>&nbsp;&nbsp;&nbsp;&nbsp;--bws-token 0.&lt;token&gt; --bws-project &lt;uuid&gt; \<br>&nbsp;&nbsp;&nbsp;&nbsp;--kb-repo git@github.com:&lt;you&gt;/&lt;kb-repo&gt;.git<button class="copy-icon" aria-label="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg></button></div>
+                </div>
+            </div>
+            <div class="do-step">
+                <div class="do-step-number">4</div>
+                <div>
+                    <div class="step-label">Still on the droplet · in ~/hermes-agent</div>
+                    <h3>Say hello</h3>
+                    <p>Confirm secrets resolve from Bitwarden, then talk to the agent. The dashboard is localhost-only — reach it over an SSH tunnel (<code>ssh -L 9119:127.0.0.1:9119 &lt;admin&gt;@&lt;ip&gt;</code>).</p>
+                    <div class="step-command" onclick="copyCommand(this)" data-copy="docker compose exec gateway hermes secrets bitwarden status&#10;docker compose exec -T gateway hermes -z &quot;say hello&quot;"><span class="prompt">$ </span>docker compose exec gateway hermes secrets bitwarden status<br><span class="prompt">$ </span>docker compose exec -T gateway hermes -z "say hello"<button class="copy-icon" aria-label="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg></button></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="paths" id="model">
+        <h2 class="section-heading">Pick your model</h2>
+        <p class="section-subtitle"><code>config.yaml</code> chooses how the model authenticates. Start zero-key, add a key later.</p>
+        <div class="paths-grid">
+            <a class="path-card" href="https://console.anthropic.com" target="_blank" rel="noopener">
+                <span class="path-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
+                </span>
+                <div class="path-eyebrow">anthropic</div>
+                <h3>claude-opus-4.6</h3>
+                <p>Bring an <code>ANTHROPIC_API_KEY</code> (stored in Bitwarden). The default provider — most capable, billed per token.</p>
+                <div class="path-meta">API key · from Bitwarden</div>
+            </a>
+            <a class="path-card" href="https://platform.openai.com" target="_blank" rel="noopener">
+                <span class="path-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
+                </span>
+                <div class="path-eyebrow">openai-api</div>
+                <h3>gpt-4o</h3>
+                <p>Bring an <code>OPENAI_API_KEY</code> (stored in Bitwarden). Standard OpenAI API access, billed per token.</p>
+                <div class="path-meta">API key · from Bitwarden</div>
+            </a>
+            <div class="path-card recommended">
+                <div class="path-eyebrow">openai-codex</div>
+                <h3>gpt-5.5 — no key</h3>
+                <p>Uses a ChatGPT Plus/Pro subscription via a one-time OAuth login on the droplet. <strong>The zero-key start</strong> — nothing to store before your first run.</p>
+                <div class="path-meta">OAuth · no API key</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="running-preview" id="kb">
+        <h2 class="section-heading">A knowledge base, natively</h2>
+        <p class="section-subtitle">Every agent maintains a personal wiki (the <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f" target="_blank" rel="noopener" style="color:var(--accent-green);text-decoration:none;">Karpathy LLM Wiki</a> pattern): you drop sources into <code style="font-family:monospace;color:var(--accent-green)">raw/</code>, it compiles cross-linked articles into <code style="font-family:monospace;color:var(--accent-green)">wiki/</code>, and keeps <code style="font-family:monospace;color:var(--accent-green)">INDEX.md</code> current — all in a GitHub repo you open in Obsidian.</p>
+        <div class="preview-window">
+            <div class="preview-titlebar">
+                <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                <span class="preview-path">~/.hermes/workspace/kb/wiki/bitwarden-secrets.md</span>
+            </div>
+<div class="preview-body"><span class="h"># Bitwarden Secrets Manager</span>
+
+The backend Hermes pulls API keys from at startup. Keys live in a
+<span class="wl">[[project]]</span>; only a scoped <span class="wl">[[bootstrap-token]]</span> ever touches the droplet.
+
+<span class="h">## How it works</span>
+- Each secret is **named after its env var** (`ANTHROPIC_API_KEY`, …).
+- The <span class="wl">[[gateway]]</span> resolves them into memory at boot — nothing on disk.
+- Rotate in the web app; no redeploy needed.
+
+<span class="c">## Source Notes</span>
+<span class="c">- Ingested 2026-07-03 from raw/bitwarden-setup.md</span>
+
+<span class="c">## See Also</span>
+<span class="wl">[[config-yaml]]</span> · <span class="wl">[[soul]]</span> · <span class="wl">[[deploy]]</span>
+</div>
+        </div>
+        <p class="section-subtitle" style="margin-top: 2rem;">
+            The wiki lives at <code style="font-family:monospace;color:var(--accent-green)">~/.hermes/workspace/kb/</code>. Create an empty GitHub repo, pass it as <code>--kb-repo</code>, and the installer seeds it. Open the <strong>same repo in Obsidian</strong> via the <code>obsidian-git</code> plugin — that's your window into everything the agent has learned, and an off-box backup of its most valuable state.
+        </p>
+    </section>
+
+    <section class="do-deploy" id="secrets" style="padding-top:2rem;">
+        <h2 class="section-heading">Secrets — start on the right foot</h2>
+        <p class="section-subtitle">Never paste keys in chat, scripts, or <code>.env</code>. The default backend is Hermes' native Bitwarden Secrets Manager.</p>
+        <div class="do-banner">
+            <h3>Only a scoped token touches disk.</h3>
+            <p>Keys live in a Bitwarden project, each named after its env var, and are pulled into the gateway's memory at startup. The droplet holds only a machine-account bootstrap token — rotate anything with one edit in the web app, no redeploy. Your agent is also told to <strong>refuse credentials sent over chat</strong> and point you to Bitwarden instead.</p>
+        </div>
+    </section>
+
+    <section class="features">
+        <h2 class="section-heading">Built as a student baseline</h2>
+        <p class="section-subtitle">Dead simple, works for everyone, and does the right thing by default.</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">&#x1f9ec;</div>
+                <h3>An agent is a directory</h3>
+                <p>Persona, memory, skills, and a knowledge base — plain files. Point Claude Code at the repo, describe the agent you want, and it fills in the template.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1f4d3;</div>
+                <h3>GitHub-backed wiki</h3>
+                <p>The knowledge base is just a GitHub repo of markdown. No MCP server, no database — the agent reads and writes it with normal file tools and pushes.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1f510;</div>
+                <h3>Secrets done right</h3>
+                <p>Bitwarden Secrets Manager by default. Only a scoped bootstrap token on disk; the installer takes no raw keys; the persona refuses credentials over chat.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1f512;</div>
+                <h3>Hardened by default</h3>
+                <p>UFW (SSH only), fail2ban, SSH key-only auth, a non-root admin user, and swap — all configured automatically by bootstrap.sh.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1f501;</div>
+                <h3>Seed-once & idempotent</h3>
+                <p>Re-run the installer anytime. Memory and the runtime-managed config are never clobbered; the persona refreshes; skills merge. Safe by construction.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1f680;</div>
+                <h3>Zero-key first run</h3>
+                <p>Try it with <code>openai-codex</code> — a ChatGPT subscription and a one-time OAuth login, no API key to store. Add Bitwarden when you're ready.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="structure">
+        <details class="structure-details">
+            <summary>Curious about the file layout? Expand the agent directory structure</summary>
+            <p class="section-subtitle" style="margin-bottom: 2rem;">Copy <a href="https://github.com/zenithventure/hermes-agent-teams/tree/main/_template">_template/</a> to a new directory and fill it in. See <a href="https://github.com/zenithventure/hermes-agent-teams/blob/main/CLAUDE.md">CLAUDE.md</a> for the authoring contract.</p>
+            <div class="structure-tree">
+                <span class="dir">my-agent/</span><br>
+                &nbsp;&nbsp;config.yaml <span class="comment"># name, model/provider, Bitwarden block</span><br>
+                &nbsp;&nbsp;SOUL.md <span class="comment"># persona (first person)</span><br>
+                &nbsp;&nbsp;<span class="dir">memories/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;USER.md <span class="comment"># who the agent works for</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;MEMORY.md <span class="comment"># optional long-term seed</span><br>
+                &nbsp;&nbsp;<span class="dir">skills/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">knowledge-base/</span> <span class="comment"># the LLM-wiki discipline</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SKILL.md<br>
+                &nbsp;&nbsp;<span class="dir">kb-seed/</span> <span class="comment"># starter pushed to an empty KB repo</span>
+            </div>
+        </details>
+    </section>
+
+    <footer>
+        <div class="footer-links">
+            <a href="https://zenithstudio.io">Zenith Venture Studio</a>
+            <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>
+            <a href="https://github.com/zenithventure/hermes-agent-teams">GitHub</a>
+        </div>
+        <p>&copy; 2026 Zenith Venture Studio. Built for builders.</p>
+    </footer>
+
+    <script>
+    function copyCommand(el) {
+        var text = el.getAttribute('data-copy');
+        navigator.clipboard.writeText(text).then(function() {
+            var icon = el.querySelector('.copy-icon');
+            icon.classList.add('copied');
+            icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>';
+            setTimeout(function() {
+                icon.classList.remove('copied');
+                icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg>';
+            }, 2000);
+        });
+    }
+    </script>
+</body>
+</html>
