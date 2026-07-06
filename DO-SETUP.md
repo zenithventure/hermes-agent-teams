@@ -109,8 +109,8 @@ docker compose restart
 
 ```bash
 cd ~/hermes-agent
-docker compose exec gateway hermes secrets bitwarden status   # keys resolve from Bitwarden
-docker compose exec -T gateway hermes -z "say hello"          # model replies
+hermes secrets bitwarden status   # keys resolve from Bitwarden
+hermes -z "say hello"          # model replies
 ls ~/.hermes/workspace/kb                                     # raw/ wiki/ INDEX.md log.md CLAUDE.md
 ```
 

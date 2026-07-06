@@ -24,7 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/ma
       --kb-repo https://github.com/<you>/<kb-repo>.git
 
 # 3. Say hello
-cd ~/hermes-agent && docker compose exec -T gateway hermes -z "say hello"
+hermes -z "say hello"
 ```
 
 **No `doctl`?** Create the droplet in the DigitalOcean UI instead (Ubuntu 24.04,
@@ -89,7 +89,7 @@ named after their env vars, create a machine account with Read access, and
 generate an access token. Verify on the box:
 
 ```bash
-cd ~/hermes-agent && docker compose exec gateway hermes secrets bitwarden status
+hermes secrets bitwarden status
 ```
 
 Your agent is also told to **refuse credentials sent over chat** — it points you
@@ -116,11 +116,17 @@ for the ingest / query / lint discipline the agent follows.
 
 ## Operate
 
+`bootstrap.sh` installs a **`hermes` host wrapper**, so you can run the CLI
+straight from the shell — `hermes model`, `hermes pairing list`,
+`hermes secrets bitwarden status`, etc. — instead of the full
+`cd ~/hermes-agent && docker compose exec gateway hermes …`.
+
 ```bash
-cd ~/hermes-agent
-docker compose logs -f                    # tail gateway + dashboard
-docker compose restart                    # restart the stack
-docker compose exec gateway hermes        # interactive CLI chat
+hermes                                     # interactive CLI chat
+hermes model                              # change the model/provider
+hermes pairing approve telegram <code>    # approve a messaging user
+cd ~/hermes-agent && docker compose logs -f    # tail gateway + dashboard
+docker restart hermes                     # restart the gateway
 # dashboard is localhost-only — tunnel to it:
 ssh -L 9119:127.0.0.1:9119 <admin>@<ip>   # then open http://localhost:9119
 ```
