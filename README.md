@@ -60,7 +60,7 @@ All are idempotent. Author agents from [`_template/`](_template/) — see
 
 | Choice | `provider` | Auth | Key needed? | Model |
 |--------|-----------|------|-------------|-------|
-| **Anthropic API** | `anthropic` | `ANTHROPIC_API_KEY` (from Bitwarden) | yes | `claude-opus-4.6` |
+| **Anthropic API** | `anthropic` | `ANTHROPIC_API_KEY` (from Bitwarden) | yes | `claude-haiku-4.5` |
 | **Codex** (ChatGPT sub) | `openai-codex` | ChatGPT Plus/Pro subscription OAuth | **no** | `gpt-5.5` |
 | **OpenRouter** | `auto` + `base_url` | `OPENROUTER_API_KEY` (from Bitwarden) | yes | any OpenRouter slug |
 
