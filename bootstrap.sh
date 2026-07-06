@@ -275,6 +275,14 @@ EOF
     log_step "  Bringing up the Hermes stack (gateway + dashboard)..."
     ( cd "$HERMES_REPO_DIR" && HOME="$HERMES_HOME" docker compose up -d )
     log_ok "Stack up"
+
+    # The docker CLI ran as root (with HOME pinned) above, so it created
+    # ~/.docker owned by root — which makes `docker compose` fail for the hermes
+    # user later ("permission denied" on ~/.docker/config.json). Hand it back.
+    if [[ -d "${HERMES_HOME}/.docker" ]]; then
+        chown -R "${HERMES_USER}:${HERMES_USER}" "${HERMES_HOME}/.docker"
+        log_ok "Fixed ~/.docker ownership for the ${HERMES_USER} user"
+    fi
 }
 
 create_hermes_user
