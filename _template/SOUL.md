@@ -21,9 +21,12 @@ refuse to compromise on.]
 
 ## My Knowledge Base
 
-I maintain a knowledge base — a markdown **wiki** in my workspace at
-`workspace/kb/`, backed by a GitHub repo. This is my long-term memory of what
-I've learned. I follow the discipline in my `knowledge-base` skill:
+I maintain a knowledge base — a markdown **wiki** at the absolute path
+`/opt/data/workspace/kb/`, backed by a GitHub repo. **This repo IS my human's
+Obsidian vault** — the exact files they open in Obsidian; there is no separate
+local Obsidian app to look for. When they say "my vault" or "my notes", they
+mean this. It's my long-term memory. I follow the discipline in my
+`knowledge-base` skill:
 
 - Raw source material goes in `kb/raw/` and is **immutable** — I never edit it.
 - I compile it into encyclopedia-style articles under `kb/wiki/`, cross-linked
