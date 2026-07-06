@@ -80,6 +80,11 @@
         .field input:focus{outline:none;border-color:var(--green-line)}
         .row2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
         .sub{font-size:.72rem;color:var(--text-muted);margin-top:-.05rem}
+        .sub.priv{color:var(--text-secondary);line-height:1.5}
+        .secret{display:flex;gap:.4rem}
+        .secret input{flex:1;min-width:0}
+        .reveal{flex:0 0 auto;font-family:'Space Grotesk',sans-serif;font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:0 .6rem;cursor:pointer}
+        .reveal:hover{color:var(--text-primary);border-color:var(--border-2)}
 
         .recipe{display:flex;flex-direction:column;gap:1rem;min-width:0}
         .step{display:grid;grid-template-columns:auto 1fr;gap:1rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:1.25rem 1.35rem}
@@ -140,8 +145,17 @@
             </div>
 
             <div class="grp">
-                <span class="lbl">Secrets</span>
-                <div class="info"><span class="t">Bitwarden Secrets Manager</span><span class="d">Every key lives in your vault; only a scoped token touches the box.</span></div>
+                <span class="lbl">Bitwarden</span>
+                <div class="info"><span class="t">Bitwarden Secrets Manager</span><span class="d">Every key lives in your vault; only this scoped token touches the box.</span></div>
+                <div class="field">
+                    <label for="bwsToken">Access token</label>
+                    <div class="secret"><input id="bwsToken" type="password" placeholder="0.xxxxxxxx…" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="reveal" id="revealTok" aria-label="Show token">show</button></div>
+                </div>
+                <div class="field">
+                    <label for="bwsProject">Project ID (UUID)</label>
+                    <input id="bwsProject" type="text" placeholder="5f583dca-70f6-4ea8-…" autocomplete="off" spellcheck="false">
+                </div>
+                <span class="sub priv">🔒 Optional — fill these to bake them into the command. They stay in your browser (this page is static; nothing is sent anywhere), aren't saved, and reload clears them. The token shows masked on screen — <b>Copy</b> grabs the real value.</span>
             </div>
 
             <div class="grp">
@@ -175,14 +189,18 @@
     <script>
     (function(){
         var RAW='https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main';
-        var S={model:'openrouter',telegram:false,kb:false,kbRepo:'',ip:'',admin:''};
+        var S={model:'openrouter',telegram:false,kb:false,kbRepo:'',ip:'',admin:'',bwsToken:'',bwsProject:''};
         var MODEL={
             openrouter:{name:'OpenRouter',env:'OPENROUTER_API_KEY',keyUrl:'https://openrouter.ai/keys',keyLabel:'OpenRouter API key',slug:'anthropic/claude-sonnet-4',oauth:false},
             anthropic:{name:'Anthropic',env:'ANTHROPIC_API_KEY',keyUrl:'https://console.anthropic.com/settings/keys',keyLabel:'Anthropic API key',slug:'claude-opus-4.6',oauth:false},
             codex:{name:'Codex',env:null,keyUrl:null,keyLabel:null,slug:'gpt-5.5',oauth:true}
         };
         function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-        function cmd(raw){return '<div class="cmd"><pre>'+esc(raw)+'</pre><button class="copy" type="button" aria-label="Copy command">Copy</button></div>';}
+        function mask(v){return v.length>4 ? v.slice(0,4)+'••••••••' : '0.••••••••';}
+        function cmd(display,copyText){
+            var attr=(copyText!=null&&copyText!==display)?' data-copy="'+esc(copyText).replace(/"/g,'&quot;')+'"':'';
+            return '<div class="cmd"'+attr+'><pre>'+esc(display)+'</pre><button class="copy" type="button" aria-label="Copy command">Copy</button></div>';
+        }
         function link(h,t){return '<a href="'+h+'" target="_blank" rel="noopener">'+t+' ↗</a>';}
 
         function steps(){
@@ -214,12 +232,16 @@
                 +cmd('#!/bin/bash\ncurl -fsSL '+RAW+'/bootstrap.sh | bash')
                 +'<p class="note">Runs as root on first boot — self-hardens and installs Hermes (~5–8 min). Only <code>bootstrap.sh</code> goes here, never secrets.</p>'});
 
-            // 4 — install
-            var flags=['--agent _template','--bws-token 0.<token> --bws-project <uuid>'];
-            if(S.kb) flags.push('--kb-repo https://github.com/'+(S.kbRepo||'<you>/<repo>')+'.git');
-            var install='sudo -u hermes -i\ncurl -fsSL '+RAW+'/install-agent.sh \\\n  | bash -s -- '+flags.join(' \\\n      ');
+            // 4 — install (fills BWS token/project if provided; token shown masked, Copy has the real one)
+            var tokReal=S.bwsToken||'0.<token>', tokDisp=S.bwsToken?mask(S.bwsToken):'0.<token>', proj=S.bwsProject||'<uuid>';
+            function flags(tok){var f=['--agent _template','--bws-token '+tok+' --bws-project '+proj];if(S.kb)f.push('--kb-repo https://github.com/'+(S.kbRepo||'<you>/<repo>')+'.git');return f;}
+            var base='sudo -u hermes -i\ncurl -fsSL '+RAW+'/install-agent.sh \\\n  | bash -s -- ';
+            var haveCreds=S.bwsToken||S.bwsProject;
             out.push({title:'Install your agent',body:
-                '<p>SSH into the droplet, drop to the <code>hermes</code> user, and deploy:</p>'+cmd(install)});
+                '<p>SSH into the droplet, drop to the <code>hermes</code> user, and deploy:</p>'
+                +cmd(base+flags(tokDisp).join(' \\\n      '), base+flags(tokReal).join(' \\\n      '))
+                +(haveCreds?'':'<p class="note">Fill your Bitwarden <b>access token</b> + <b>project ID</b> in the panel to bake them in — no hand-editing.</p>')
+                +(S.bwsToken?'<p class="note">🔒 Token shown masked above — <b>Copy</b> puts the real one on your clipboard.</p>':'')});
 
             // 5 — wire up
             var wire=[];
@@ -261,13 +283,18 @@
                 render();
             });
         });
-        ['kbRepo','ip','admin'].forEach(function(id){
+        ['kbRepo','ip','admin','bwsToken','bwsProject'].forEach(function(id){
             document.getElementById(id).addEventListener('input',function(e){S[id]=e.target.value.trim();render();});
+        });
+        document.getElementById('revealTok').addEventListener('click',function(){
+            var inp=document.getElementById('bwsToken'), hidden=inp.type==='password';
+            inp.type=hidden?'text':'password'; this.textContent=hidden?'hide':'show';
         });
         document.addEventListener('click',function(e){
             var b=e.target.closest('.copy'); if(!b) return;
-            var pre=b.parentElement.querySelector('pre');
-            navigator.clipboard.writeText(pre.textContent).then(function(){
+            var block=b.closest('.cmd');
+            var text=block.hasAttribute('data-copy')?block.getAttribute('data-copy'):block.querySelector('pre').textContent;
+            navigator.clipboard.writeText(text).then(function(){
                 b.textContent='Copied'; b.classList.add('ok');
                 setTimeout(function(){b.textContent='Copy'; b.classList.remove('ok');},1400);
             });
