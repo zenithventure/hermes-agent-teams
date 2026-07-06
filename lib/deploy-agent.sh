@@ -231,6 +231,10 @@ configure_kb_auth() {
     git -C "$1" config credential.helper "$KB_CRED_HELPER"
     git -C "$1" remote set-url origin "$KB_REPO" 2>/dev/null \
         || git -C "$1" remote add origin "$KB_REPO"
+    # Persistent identity so the agent's own commits succeed (git errors with
+    # "unable to auto-detect email address" otherwise).
+    git -C "$1" config user.email "hermes-agent@localhost"
+    git -C "$1" config user.name "Hermes Agent"
 }
 
 # Every git call injects the helper inline (so clone works before .git exists)
