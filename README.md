@@ -62,11 +62,11 @@ All are idempotent. Author agents from [`_template/`](_template/) — see
 |--------|-----------|------|-------------|-------|
 | **Anthropic API** | `anthropic` | `ANTHROPIC_API_KEY` (from Bitwarden) | yes | `claude-opus-4.6` |
 | **Codex** (ChatGPT sub) | `openai-codex` | ChatGPT Plus/Pro subscription OAuth | **no** | `gpt-5.5` |
-| **OpenRouter** | `openai-api` + `base_url` | `OPENAI_API_KEY` = your OpenRouter key (from Bitwarden) | yes | any OpenRouter slug |
+| **OpenRouter** | `auto` + `base_url` | `OPENROUTER_API_KEY` (from Bitwarden) | yes | any OpenRouter slug |
 
-OpenRouter is OpenAI-compatible, so it runs through the `openai-api` provider with
-`base_url: https://openrouter.ai/api/v1` — see the commented block in
-[`_template/config.yaml`](_template/config.yaml).
+OpenRouter is supported natively — set `provider: auto` with
+`base_url: https://openrouter.ai/api/v1` and store your key as `OPENROUTER_API_KEY`
+(see the commented block in [`_template/config.yaml`](_template/config.yaml)).
 
 `openai-codex` is the **zero-key start**: no API key at all, just a one-time OAuth
 login on the droplet (the installer prints the command). Great for a first run

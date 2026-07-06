@@ -79,9 +79,9 @@ validate_one() {
         else
             [[ -n "$name" ]] && ok "config.yaml: agent.name = '$name'" || bad "config.yaml: agent.name is empty"
             case "$provider" in
-                anthropic|openai-api|openai-codex) ok "config.yaml: model.provider = '$provider'" ;;
+                anthropic|openai-api|openai-codex|openrouter|auto) ok "config.yaml: model.provider = '$provider'" ;;
                 "") bad "config.yaml: model.provider is empty" ;;
-                *)  warn "config.yaml: model.provider '$provider' is unusual (expected anthropic|openai-api|openai-codex)" ;;
+                *)  warn "config.yaml: model.provider '$provider' is unusual (expected anthropic|openai-api|openai-codex|openrouter|auto)" ;;
             esac
         fi
     fi

@@ -63,7 +63,7 @@ In the Bitwarden web app (Secrets Manager):
 
 1. Create a **project** (note its UUID).
 2. Add your keys as **secrets named after their env vars** — e.g.
-   `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` set to your OpenRouter key), plus
+   `ANTHROPIC_API_KEY` (or `OPENROUTER_API_KEY` for OpenRouter), plus
    `KB_GITHUB_TOKEN` for knowledge-base pushes, and later `TELEGRAM_BOT_TOKEN`
    for a channel.
 3. Create a **machine account** with **Read** access to the project.
