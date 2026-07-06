@@ -227,10 +227,14 @@
             }
 
             // 3 — droplet
+            var dip=S.ip||'<ip>';
             out.push({title:'Create the droplet + startup script',body:
                 '<p>DigitalOcean → Create → Droplets. <b>Ubuntu 24.04</b>, <b>2 GB / 1 CPU</b>, <b>SSH-key</b> auth. Under <b>Advanced options → Startup scripts</b>, paste:</p>'
                 +cmd('#!/bin/bash\ncurl -fsSL '+RAW+'/bootstrap.sh | bash')
-                +'<p class="note">Runs as root on first boot — self-hardens and installs Hermes (~5–8 min). Only <code>bootstrap.sh</code> goes here, never secrets.</p>'});
+                +'<p class="note">Runs as root on first boot — self-hardens and installs Hermes (~5–8 min). Only <code>bootstrap.sh</code> goes here, never secrets.</p>'
+                +'<p class="wire">Know when it’s finished — this blocks, then prints <code>status: done</code>:</p>'
+                +cmd('ssh root@'+dip+' cloud-init status --wait')
+                +'<p class="note">Prefer to watch the log live? <code>ssh root@'+dip+' tail -f /var/log/cloud-init-output.log</code> (Ctrl-C to exit).</p>'});
 
             // 4 — install (fills BWS token/project if provided; token shown masked, Copy has the real one)
             var tokReal=S.bwsToken||'0.<token>', tokDisp=S.bwsToken?mask(S.bwsToken):'0.<token>', proj=S.bwsProject||'<uuid>';
