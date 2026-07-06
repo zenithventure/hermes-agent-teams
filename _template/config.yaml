@@ -30,7 +30,7 @@ model:
   #    and point base_url at OpenRouter. provider "auto" lets Hermes route to it.
   # provider: "auto"
   # base_url: "https://openrouter.ai/api/v1"
-  # default: "anthropic/claude-opus-4.6"   # any OpenRouter model slug
+  # default: "anthropic/claude-haiku-4.5"   # any OpenRouter slug (cheap default)
 
 # ── Secrets: Bitwarden Secrets Manager (the student baseline) ─────────
 # Keys are pulled into the gateway's process memory at startup. Name each
