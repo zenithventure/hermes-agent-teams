@@ -247,19 +247,29 @@
                 +(haveCreds?'':'<p class="note">Fill your Bitwarden <b>access token</b> + <b>project ID</b> in the panel to bake them in — no hand-editing.</p>')
                 +(S.bwsToken?'<p class="note">🔒 Token shown masked above — <b>Copy</b> puts the real one on your clipboard.</p>':'')});
 
-            // 5 — wire up
+            // 5 — wire up (the `hermes` wrapper runs the CLI in the container — no docker prefix)
             var wire=[];
-            wire.push({t:'Enable Bitwarden (installs <code>bws</code>, pick your project):',c:'docker compose exec gateway hermes secrets bitwarden setup'});
-            if(m.oauth) wire.push({t:'Sign in with your ChatGPT subscription:',c:'docker compose exec gateway hermes auth add openai-codex --type oauth --no-browser --manual-paste'});
-            wire.push({t:'Pick your model (or use the dashboard → MODELS):',c:'docker compose exec gateway hermes model    # choose '+m.slug});
-            if(S.telegram) wire.push({t:'Turn on Telegram:',c:'docker compose exec gateway hermes setup gateway'});
-            wire.push({t:'Apply:',c:'docker compose restart'});
-            out.push({title:'Wire it up · on the droplet, in ~/hermes-agent',body:wire.map(function(w){return '<p class="wire">'+w.t+'</p>'+cmd(w.c);}).join('')});
+            wire.push({t:'Enable Bitwarden (installs <code>bws</code>, pick your project):',c:'hermes secrets bitwarden setup'});
+            if(m.oauth) wire.push({t:'Sign in with your ChatGPT subscription:',c:'hermes auth add openai-codex --type oauth --no-browser --manual-paste'});
+            wire.push({t:'Pick your model (or use the dashboard → MODELS):',c:'hermes model    # choose '+m.slug});
+            wire.push({t:'Restart so the gateway loads your keys:',c:'docker restart hermes'});
+            out.push({title:'Wire it up · on the droplet',body:
+                '<p class="note">SSH in as root — <code>hermes …</code> works straight from the shell (bootstrap installs a wrapper), no <code>docker compose</code> prefix needed.</p>'
+                +wire.map(function(w){return '<p class="wire">'+w.t+'</p>'+cmd(w.c);}).join('')});
+
+            // 5b — Telegram pairing (approve yourself)
+            if(S.telegram){
+                out.push({title:'Approve yourself on Telegram',body:
+                    '<p>Telegram switches on automatically once <code>TELEGRAM_BOT_TOKEN</code> is in your vault — but it ignores strangers, so approve yourself:</p>'
+                    +'<ul class="chk"><li><b>Message your bot</b> (e.g. “hi”) — it replies with a <b>pairing code</b>.</li><li><b>Approve that code</b> on the box:</li></ul>'
+                    +cmd('hermes pairing approve telegram <CODE>')
+                    +'<p class="note">…or just click <b>Approve</b> in the dashboard → <b>PAIRING</b> (no SSH). Then message again — it chats.</p>'});
+            }
 
             // 6 — verify
             var admin=S.admin||'<admin>', ip=S.ip||'<ip>';
             out.push({title:'Talk to your agent',body:
-                cmd('docker compose exec -T gateway hermes -z "say hello"')
+                cmd('hermes -z "say hello"')
                 +'<p class="note">The dashboard changes the model, keys, and channels anytime — reach it over an SSH tunnel:</p>'
                 +cmd('ssh -L 9119:127.0.0.1:9119 '+admin+'@'+ip+'   # then open http://localhost:9119')});
 

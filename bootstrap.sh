@@ -234,7 +234,8 @@ install_docker() {
     systemctl enable docker > /dev/null 2>&1
     systemctl start docker > /dev/null 2>&1
     usermod -aG docker "$HERMES_USER"
-    log_ok "dockerd enabled + ${HERMES_USER} added to docker group"
+    usermod -aG docker "$ADMIN_USER" 2>/dev/null || true
+    log_ok "dockerd enabled; ${HERMES_USER} + ${ADMIN_USER} in docker group"
 }
 
 clone_and_build_hermes() {
@@ -283,6 +284,20 @@ EOF
         chown -R "${HERMES_USER}:${HERMES_USER}" "${HERMES_HOME}/.docker"
         log_ok "Fixed ~/.docker ownership for the ${HERMES_USER} user"
     fi
+
+    # Host wrapper so `hermes …` works straight from the shell — the CLI really
+    # runs inside the gateway container, and typing the docker-compose prefix
+    # every time is the #1 student stumble. Allocates a TTY for interactive
+    # commands (hermes model, secrets bitwarden setup) and disables it when piped.
+    cat > /usr/local/bin/hermes <<'WRAP'
+#!/usr/bin/env bash
+# Run the Hermes CLI inside the running gateway container.
+cd /home/hermes/hermes-agent 2>/dev/null || { echo "Hermes stack not found at /home/hermes/hermes-agent" >&2; exit 1; }
+[ -t 0 ] && TTY= || TTY=-T
+exec env HOME=/home/hermes docker compose exec $TTY gateway hermes "$@"
+WRAP
+    chmod 0755 /usr/local/bin/hermes
+    log_ok "Installed 'hermes' host wrapper (run 'hermes …' directly)"
 }
 
 create_hermes_user
