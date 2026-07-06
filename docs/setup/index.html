@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Builder — Hermes Agent Teams</title>
+    <meta name="description" content="Answer a few questions and get the exact, copy-paste commands to deploy your own Hermes agent — startup script, installer flags, the Bitwarden secrets to create, and the post-install wiring.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg-primary:#08080c; --bg-secondary:#0f0f16; --bg-card:#16161f;
+            --text-primary:#ffffff; --text-secondary:#9d9db5; --text-muted:#5e5e76;
+            --accent-green:#22c55e; --accent-lime:#84cc16; --accent-yellow:#eab308;
+            --accent-gradient:linear-gradient(135deg,#22c55e 0%,#84cc16 55%,#eab308 100%);
+            --border-color:rgba(255,255,255,.06); --border-2:rgba(255,255,255,.12);
+            --green-soft:rgba(34,197,94,.1); --green-line:rgba(34,197,94,.4);
+            --mono:'SF Mono','Fira Code','Consolas',ui-monospace,monospace;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-primary);color:var(--text-primary);line-height:1.6;-webkit-font-smoothing:antialiased}
+        a{color:var(--accent-green);text-decoration:none}
+        code{font-family:var(--mono);font-size:.85em;background:var(--bg-secondary);border:1px solid var(--border-color);padding:.05em .35em;border-radius:4px;color:var(--accent-lime)}
+
+        nav{position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;background:rgba(8,8,12,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-color)}
+        .nav-left{display:flex;align-items:center;gap:.7rem;font-family:'Space Grotesk',sans-serif}
+        .nav-left .logo{font-weight:700;font-size:1.05rem;color:var(--text-primary)}
+        .nav-left .sep{color:var(--text-muted)}
+        .nav-left .cur{font-weight:600;font-size:.95rem;color:var(--text-secondary)}
+        .nav-right{display:flex;align-items:center;gap:1.25rem;font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:500}
+        .nav-right a.plain{color:var(--text-secondary)}
+        .nav-right a.plain:hover{color:var(--text-primary)}
+        .nav-right a.btn{color:var(--bg-primary);background:var(--accent-green);padding:.5rem 1.1rem;border-radius:6px;font-weight:600}
+
+        .head{max-width:1180px;margin:0 auto;padding:2.6rem 1.5rem .4rem}
+        .head .eyebrow{font-family:'Space Grotesk',sans-serif;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.16em;color:var(--accent-green);margin-bottom:.6rem}
+        .head h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,4.5vw,3rem);font-weight:800;line-height:1.08;text-wrap:balance;margin-bottom:.7rem}
+        .head h1 .g{background:var(--accent-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+        .head p.lede{color:var(--text-secondary);max-width:62ch;font-size:1.05rem}
+        .head p.lede b{color:var(--text-primary)}
+
+        .builder{max-width:1180px;margin:0 auto;padding:1.8rem 1.5rem 4rem;display:grid;grid-template-columns:360px 1fr;gap:1.5rem;align-items:start}
+        @media(max-width:900px){.builder{grid-template-columns:1fr}}
+
+        .choices{position:sticky;top:5rem;display:flex;flex-direction:column;gap:1.4rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:1.4rem 1.3rem}
+        @media(max-width:900px){.choices{position:static}}
+        .grp{display:flex;flex-direction:column;gap:.6rem}
+        .grp > .lbl{font-family:'Space Grotesk',sans-serif;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted)}
+        .grp > .lbl .lc{text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-muted)}
+
+        .opt{display:flex;flex-direction:column;gap:.15rem;text-align:left;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:10px;padding:.6rem .75rem;cursor:pointer;color:var(--text-primary);transition:border-color .15s,background .15s}
+        .opt:hover{border-color:var(--border-2)}
+        .opt .t{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:600}
+        .opt .d{font-size:.77rem;color:var(--text-secondary)}
+        .opt.active{border-color:var(--green-line);background:var(--green-soft)}
+        .opt.active .t{color:var(--accent-green)}
+        .seg{display:flex;flex-direction:column;gap:.4rem}
+
+        .toggle{display:flex;align-items:center;justify-content:space-between;gap:.75rem;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:10px;padding:.6rem .75rem;cursor:pointer;color:var(--text-primary);width:100%;transition:border-color .15s}
+        .toggle:hover{border-color:var(--border-2)}
+        .toggle .tl{display:flex;flex-direction:column;gap:.15rem;text-align:left}
+        .toggle .t{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:600}
+        .toggle .d{font-size:.77rem;color:var(--text-secondary)}
+        .sw{flex:0 0 auto;width:38px;height:22px;border-radius:20px;border:1px solid var(--border-2);position:relative;transition:background .15s,border-color .15s}
+        .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-muted);transition:transform .15s,background .15s}
+        .toggle.on .sw{background:var(--green-soft);border-color:var(--green-line)}
+        .toggle.on .sw::after{transform:translateX(16px);background:var(--accent-green)}
+        .toggle.on .t{color:var(--accent-green)}
+
+        .info{display:flex;flex-direction:column;gap:.15rem;background:var(--bg-secondary);border:1px solid var(--border-color);border-left:3px solid var(--accent-green);border-radius:8px;padding:.55rem .75rem}
+        .info .t{font-family:'Space Grotesk',sans-serif;font-size:.88rem;font-weight:600}
+        .info .d{font-size:.76rem;color:var(--text-secondary)}
+
+        .field{display:flex;flex-direction:column;gap:.35rem}
+        .field.hidden{display:none}
+        .field label{font-family:'Space Grotesk',sans-serif;font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted)}
+        .field input{font-family:var(--mono);font-size:.82rem;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:.5rem .6rem;color:var(--text-primary)}
+        .field input::placeholder{color:var(--text-muted)}
+        .field input:focus{outline:none;border-color:var(--green-line)}
+        .row2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+        .sub{font-size:.72rem;color:var(--text-muted);margin-top:-.05rem}
+
+        .recipe{display:flex;flex-direction:column;gap:1rem;min-width:0}
+        .step{display:grid;grid-template-columns:auto 1fr;gap:1rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:1.25rem 1.35rem}
+        .num{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;width:2rem;flex:0 0 2rem;background:var(--accent-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+        .step-body{min-width:0}
+        .step-body h3{margin:.1rem 0 .55rem;font-family:'Space Grotesk',sans-serif;font-size:1.02rem;font-weight:700}
+        .step-body p{margin:.5rem 0;font-size:.9rem;color:var(--text-secondary)}
+        .step-body p.note{font-size:.8rem;color:var(--text-muted)}
+        .step-body p.wire{margin:.9rem 0 .3rem;color:var(--text-primary);font-size:.86rem}
+        .step-body p.wire:first-child{margin-top:0}
+        .step-body a{border-bottom:1px dotted var(--green-line)}
+        .step-body a:hover{border-bottom-style:solid}
+
+        ul.chk,ul.keys{list-style:none;margin:.4rem 0;padding:0;display:flex;flex-direction:column;gap:.5rem}
+        ul.chk li{position:relative;padding-left:1.5rem;font-size:.88rem;color:var(--text-secondary)}
+        ul.chk li::before{content:"";position:absolute;left:0;top:.5em;width:8px;height:8px;border-radius:2px;background:var(--accent-gradient)}
+        ul.chk li b{color:var(--text-primary)}
+        ul.keys{flex-direction:row;flex-wrap:wrap;gap:.45rem}
+        ul.keys li code{font-size:.8rem;color:var(--accent-green);background:var(--green-soft);border-color:var(--green-line)}
+
+        .cmd{position:relative;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:10px;margin:.55rem 0}
+        .cmd pre{margin:0;padding:.75rem 3.4rem .75rem .9rem;font-family:var(--mono);font-size:.8rem;line-height:1.65;color:var(--text-primary);white-space:pre;overflow-x:auto}
+        .copy{position:absolute;top:.5rem;right:.5rem;font-family:'Space Grotesk',sans-serif;font-size:.66rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);background:var(--bg-card);border:1px solid var(--border-color);border-radius:6px;padding:.28rem .5rem;cursor:pointer;transition:color .15s,border-color .15s}
+        .copy:hover{color:var(--text-primary);border-color:var(--border-2)}
+        .copy.ok{color:var(--accent-green);border-color:var(--green-line)}
+        .copy:focus-visible,.opt:focus-visible,.toggle:focus-visible,input:focus-visible{outline:2px solid var(--accent-green);outline-offset:2px}
+
+        footer{max-width:1180px;margin:0 auto;padding:1.5rem;border-top:1px solid var(--border-color);font-size:.8rem;color:var(--text-muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+        @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-left">
+            <a class="logo" href="/">Zenith</a><span class="sep">/</span><span class="cur">Hermes · Setup</span>
+        </div>
+        <div class="nav-right">
+            <a class="plain" href="/">Overview</a>
+            <a class="btn" href="https://github.com/zenithventure/hermes-agent-teams">GitHub</a>
+        </div>
+    </nav>
+
+    <header class="head">
+        <div class="eyebrow">Setup Builder</div>
+        <h1>Build your <span class="g">deploy recipe</span></h1>
+        <p class="lede">Answer a few questions and get the <b>exact copy-paste commands</b> for your agent — the startup script, the right installer flags, which Bitwarden secrets to create, and the post-install wiring. This page only writes commands; it never touches a server.</p>
+    </header>
+
+    <div class="builder">
+        <aside class="choices">
+            <div class="grp">
+                <span class="lbl">Model</span>
+                <div class="seg">
+                    <button class="opt active" data-group="model" data-value="openrouter"><span class="t">OpenRouter</span><span class="d">One key, hundreds of models</span></button>
+                    <button class="opt" data-group="model" data-value="anthropic"><span class="t">Anthropic</span><span class="d">Claude, direct API key</span></button>
+                    <button class="opt" data-group="model" data-value="codex"><span class="t">Codex</span><span class="d">ChatGPT Plus/Pro — no key</span></button>
+                </div>
+            </div>
+
+            <div class="grp">
+                <span class="lbl">Secrets</span>
+                <div class="info"><span class="t">Bitwarden Secrets Manager</span><span class="d">Every key lives in your vault; only a scoped token touches the box.</span></div>
+            </div>
+
+            <div class="grp">
+                <span class="lbl">Add-ons</span>
+                <button class="toggle" data-toggle="telegram" aria-pressed="false"><span class="tl"><span class="t">Telegram</span><span class="d">Chat with the agent from your phone</span></span><span class="sw"></span></button>
+                <button class="toggle" data-toggle="kb" aria-pressed="false"><span class="tl"><span class="t">Knowledge base</span><span class="d">A GitHub-backed wiki it maintains</span></span><span class="sw"></span></button>
+                <div class="field hidden" id="kbRepoRow">
+                    <label for="kbRepo">KB repo (owner/name)</label>
+                    <input id="kbRepo" type="text" placeholder="zenithventure/hermes-kb" autocomplete="off" spellcheck="false">
+                </div>
+            </div>
+
+            <div class="grp">
+                <span class="lbl">Your droplet <span class="lc">(optional)</span></span>
+                <div class="row2">
+                    <div class="field"><label for="ip">IP</label><input id="ip" type="text" placeholder="167.99.13.148" autocomplete="off" spellcheck="false"></div>
+                    <div class="field"><label for="admin">Admin user</label><input id="admin" type="text" placeholder="root" autocomplete="off" spellcheck="false"></div>
+                </div>
+                <span class="sub">Fills in the SSH + dashboard-tunnel commands.</span>
+            </div>
+        </aside>
+
+        <main class="recipe" id="recipe" aria-live="polite"></main>
+    </div>
+
+    <footer>
+        <span>Commands target <code>zenithventure/hermes-agent-teams</code></span>
+        <span>Change the model anytime — <code>hermes model</code> or the dashboard</span>
+    </footer>
+
+    <script>
+    (function(){
+        var RAW='https://raw.githubusercontent.com/zenithventure/hermes-agent-teams/main';
+        var S={model:'openrouter',telegram:false,kb:false,kbRepo:'',ip:'',admin:''};
+        var MODEL={
+            openrouter:{name:'OpenRouter',env:'OPENROUTER_API_KEY',keyUrl:'https://openrouter.ai/keys',keyLabel:'OpenRouter API key',slug:'anthropic/claude-sonnet-4',oauth:false},
+            anthropic:{name:'Anthropic',env:'ANTHROPIC_API_KEY',keyUrl:'https://console.anthropic.com/settings/keys',keyLabel:'Anthropic API key',slug:'claude-opus-4.6',oauth:false},
+            codex:{name:'Codex',env:null,keyUrl:null,keyLabel:null,slug:'gpt-5.5',oauth:true}
+        };
+        function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+        function cmd(raw){return '<div class="cmd"><pre>'+esc(raw)+'</pre><button class="copy" type="button" aria-label="Copy command">Copy</button></div>';}
+        function link(h,t){return '<a href="'+h+'" target="_blank" rel="noopener">'+t+' ↗</a>';}
+
+        function steps(){
+            var m=MODEL[S.model], out=[];
+            var secretNames=[];
+            if(m.env) secretNames.push(m.env);
+            if(S.telegram) secretNames.push('TELEGRAM_BOT_TOKEN');
+            if(S.kb) secretNames.push('KB_GITHUB_TOKEN');
+
+            // 1 — credentials
+            var creds=[];
+            creds.push(link('https://bitwarden.com/products/secrets-manager/','Bitwarden Secrets Manager')+' — create a project, a machine account with <b>Read</b> access, and an access token (starts <code>0.</code>)');
+            if(m.keyUrl) creds.push(link(m.keyUrl,m.keyLabel)+' — your model key');
+            if(m.oauth) creds.push('<b>No API key</b> — you sign in with your ChatGPT Plus/Pro account after install');
+            if(S.telegram) creds.push(link('https://t.me/botfather','Telegram bot token')+' — message @BotFather, then <code>/newbot</code>');
+            if(S.kb) creds.push('An empty '+link('https://github.com/new','GitHub repo')+' for the wiki + a '+link('https://github.com/settings/tokens?type=beta','fine-grained PAT')+' (Contents: Read + Write)');
+            out.push({title:'Gather your credentials',body:'<ul class="chk">'+creds.map(function(c){return '<li>'+c+'</li>';}).join('')+'</ul>'});
+
+            // 2 — store in bitwarden
+            if(secretNames.length){
+                out.push({title:'Store them in Bitwarden',body:'<p>In your Bitwarden project, add each as a secret <b>named exactly after its env var</b>:</p><ul class="keys">'+secretNames.map(function(n){return '<li><code>'+n+'</code></li>';}).join('')+'</ul>'});
+            }else{
+                out.push({title:'Store them in Bitwarden',body:'<p class="note">Nothing to store yet — Codex uses OAuth and you’ve added no channels. Your Bitwarden project is still set up, ready for keys when you add a channel or knowledge base.</p>'});
+            }
+
+            // 3 — droplet
+            out.push({title:'Create the droplet + startup script',body:
+                '<p>DigitalOcean → Create → Droplets. <b>Ubuntu 24.04</b>, <b>2 GB / 1 CPU</b>, <b>SSH-key</b> auth. Under <b>Advanced options → Startup scripts</b>, paste:</p>'
+                +cmd('#!/bin/bash\ncurl -fsSL '+RAW+'/bootstrap.sh | bash')
+                +'<p class="note">Runs as root on first boot — self-hardens and installs Hermes (~5–8 min). Only <code>bootstrap.sh</code> goes here, never secrets.</p>'});
+
+            // 4 — install
+            var flags=['--agent _template','--bws-token 0.<token> --bws-project <uuid>'];
+            if(S.kb) flags.push('--kb-repo https://github.com/'+(S.kbRepo||'<you>/<repo>')+'.git');
+            var install='sudo -u hermes -i\ncurl -fsSL '+RAW+'/install-agent.sh \\\n  | bash -s -- '+flags.join(' \\\n      ');
+            out.push({title:'Install your agent',body:
+                '<p>SSH into the droplet, drop to the <code>hermes</code> user, and deploy:</p>'+cmd(install)});
+
+            // 5 — wire up
+            var wire=[];
+            wire.push({t:'Enable Bitwarden (installs <code>bws</code>, pick your project):',c:'docker compose exec gateway hermes secrets bitwarden setup'});
+            if(m.oauth) wire.push({t:'Sign in with your ChatGPT subscription:',c:'docker compose exec gateway hermes auth add openai-codex --type oauth --no-browser --manual-paste'});
+            wire.push({t:'Pick your model (or use the dashboard → MODELS):',c:'docker compose exec gateway hermes model    # choose '+m.slug});
+            if(S.telegram) wire.push({t:'Turn on Telegram:',c:'docker compose exec gateway hermes setup gateway'});
+            wire.push({t:'Apply:',c:'docker compose restart'});
+            out.push({title:'Wire it up · on the droplet, in ~/hermes-agent',body:wire.map(function(w){return '<p class="wire">'+w.t+'</p>'+cmd(w.c);}).join('')});
+
+            // 6 — verify
+            var admin=S.admin||'<admin>', ip=S.ip||'<ip>';
+            out.push({title:'Talk to your agent',body:
+                cmd('docker compose exec -T gateway hermes -z "say hello"')
+                +'<p class="note">The dashboard changes the model, keys, and channels anytime — reach it over an SSH tunnel:</p>'
+                +cmd('ssh -L 9119:127.0.0.1:9119 '+admin+'@'+ip+'   # then open http://localhost:9119')});
+
+            return out;
+        }
+
+        function render(){
+            document.getElementById('recipe').innerHTML=steps().map(function(s,i){
+                return '<section class="step"><div class="num">'+(i+1)+'</div><div class="step-body"><h3>'+s.title+'</h3>'+s.body+'</div></section>';
+            }).join('');
+        }
+
+        document.querySelectorAll('[data-group]').forEach(function(btn){
+            btn.addEventListener('click',function(){
+                var g=btn.dataset.group; S[g]=btn.dataset.value;
+                document.querySelectorAll('[data-group="'+g+'"]').forEach(function(x){x.classList.toggle('active',x===btn);});
+                render();
+            });
+        });
+        document.querySelectorAll('[data-toggle]').forEach(function(btn){
+            btn.addEventListener('click',function(){
+                var k=btn.dataset.toggle; S[k]=!S[k];
+                btn.classList.toggle('on',S[k]); btn.setAttribute('aria-pressed',String(S[k]));
+                if(k==='kb') document.getElementById('kbRepoRow').classList.toggle('hidden',!S.kb);
+                render();
+            });
+        });
+        ['kbRepo','ip','admin'].forEach(function(id){
+            document.getElementById(id).addEventListener('input',function(e){S[id]=e.target.value.trim();render();});
+        });
+        document.addEventListener('click',function(e){
+            var b=e.target.closest('.copy'); if(!b) return;
+            var pre=b.parentElement.querySelector('pre');
+            navigator.clipboard.writeText(pre.textContent).then(function(){
+                b.textContent='Copied'; b.classList.add('ok');
+                setTimeout(function(){b.textContent='Copy'; b.classList.remove('ok');},1400);
+            });
+        });
+
+        render();
+    })();
+    </script>
+</body>
+</html>
