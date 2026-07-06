@@ -4,20 +4,24 @@ description: >-
   Maintain a personal knowledge base as a markdown wiki (the Karpathy LLM Wiki
   pattern). Use whenever the user adds source material, asks a question that the
   wiki should answer or that produces a durable insight, or asks to tidy/audit
-  the knowledge base. The KB lives at workspace/kb/ and is backed by a GitHub repo.
+  the knowledge base. The KB lives at /opt/data/workspace/kb/ and is backed by a GitHub repo.
 ---
 
 # Knowledge Base — an LLM Wiki
 
 You maintain a knowledge base for your human: a plain-markdown **wiki** at
-`workspace/kb/`, backed by a GitHub repo (so they can open the same files in
+`/opt/data/workspace/kb/`, backed by a GitHub repo (so they can open the same files in
 Obsidian). It follows Andrej Karpathy's LLM-wiki pattern: **the user writes
 `raw/`, you write `wiki/`.**
+
+> **Always use the absolute path `/opt/data/workspace/kb/`** (and `git -C
+> /opt/data/workspace/kb …`). Your shell starts in a different directory, so a
+> relative `workspace/kb` resolves to a protected path and fails.
 
 ## Layout
 
 ```
-workspace/kb/
+/opt/data/workspace/kb/
   raw/        → immutable source material the user drops in (notes, clips, docs). NEVER edit.
   wiki/       → the compiled layer YOU write: concept articles, people profiles, project pages.
   INDEX.md    → master catalog, organized by category, one line per page.
@@ -70,7 +74,7 @@ workspace/kb/
 After meaningful changes, persist to GitHub:
 
 ```bash
-cd workspace/kb
+cd /opt/data/workspace/kb
 git add -A && git commit -m "kb: <short summary>" && git push
 ```
 
