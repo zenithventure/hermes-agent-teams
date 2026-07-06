@@ -1,10 +1,11 @@
 ---
 name: knowledge-base
 description: >-
-  Maintain a personal knowledge base as a markdown wiki (the Karpathy LLM Wiki
-  pattern). Use whenever the user adds source material, asks a question that the
-  wiki should answer or that produces a durable insight, or asks to tidy/audit
-  the knowledge base. The KB lives at /opt/data/workspace/kb/ and is backed by a GitHub repo.
+  Maintain the user's personal knowledge base / Obsidian vault — a markdown wiki
+  (the Karpathy LLM Wiki pattern). Use for ANY request about their "vault",
+  "notes", "wiki", or "knowledge base": organize/tidy/audit it, add source
+  material, answer questions from it, or link notes. The vault IS the repo at
+  /opt/data/workspace/kb — there is no separate local Obsidian install to find.
 ---
 
 # Knowledge Base — an LLM Wiki
@@ -13,6 +14,11 @@ You maintain a knowledge base for your human: a plain-markdown **wiki** at
 `/opt/data/workspace/kb/`, backed by a GitHub repo (so they can open the same files in
 Obsidian). It follows Andrej Karpathy's LLM-wiki pattern: **the user writes
 `raw/`, you write `wiki/`.**
+
+> **This repo IS the user's Obsidian vault.** When they say "my vault", "my
+> notes", or "my knowledge base", they mean `/opt/data/workspace/kb/` — the exact
+> files they open in Obsidian on their laptop. **Do not** look for a local
+> Obsidian app or a `~/Documents/Obsidian Vault`; there is none on this box.
 
 > **Always use the absolute path `/opt/data/workspace/kb/`** (and `git -C
 > /opt/data/workspace/kb …`). Your shell starts in a different directory, so a
