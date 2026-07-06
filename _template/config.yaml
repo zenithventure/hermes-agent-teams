@@ -17,7 +17,7 @@ model:
   #
   # 1) Anthropic API — most capable default. Needs ANTHROPIC_API_KEY.
   provider: "anthropic"
-  default: "claude-opus-4.6"
+  default: "claude-haiku-4.5"
   #
   # 2) Codex — ChatGPT Plus/Pro subscription via OAuth. The ZERO-KEY start:
   #    no API key at all, just a one-time login on the droplet (install-agent.sh
