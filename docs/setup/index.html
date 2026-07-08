@@ -241,22 +241,23 @@
             // 4 — install (fills BWS token/project if provided; token shown masked, Copy has the real one)
             var tokReal=S.bwsToken||'0.<token>', tokDisp=S.bwsToken?mask(S.bwsToken):'0.<token>', proj=S.bwsProject||'<uuid>';
             function flags(tok){var f=['--agent _template','--bws-token '+tok+' --bws-project '+proj];if(S.kb)f.push('--kb-repo https://github.com/'+(S.kbRepo||'<you>/<repo>')+'.git');return f;}
-            var base='sudo -u hermes -i\ncurl -fsSL '+RAW+'/install-agent.sh \\\n  | bash -s -- ';
+            var base='curl -fsSL '+RAW+'/install-agent.sh \\\n  | bash -s -- ';
             var haveCreds=S.bwsToken||S.bwsProject;
             out.push({title:'Install your agent',body:
-                '<p>SSH into the droplet, drop to the <code>hermes</code> user, and deploy:</p>'
+                '<p>SSH into the droplet, drop to the <code>hermes</code> user…</p>'
+                +cmd('sudo -u hermes -i')
+                +'<p class="wire">…then deploy:</p>'
                 +cmd(base+flags(tokDisp).join(' \\\n      '), base+flags(tokReal).join(' \\\n      '))
                 +(haveCreds?'':'<p class="note">Fill your Bitwarden <b>access token</b> + <b>project ID</b> in the panel to bake them in — no hand-editing.</p>')
                 +(S.bwsToken?'<p class="note">🔒 Token shown masked above — <b>Copy</b> puts the real one on your clipboard.</p>':'')});
 
-            // 5 — wire up (the `hermes` wrapper runs the CLI in the container — no docker prefix)
+            // 5 — pick your model (the installer already auto-enables Bitwarden)
             var wire=[];
-            wire.push({t:'Enable Bitwarden (installs <code>bws</code>, pick your project):',c:'hermes secrets bitwarden setup'});
             if(m.oauth) wire.push({t:'Sign in with your ChatGPT subscription:',c:'hermes auth add openai-codex --type oauth --no-browser --manual-paste'});
-            wire.push({t:'Pick your model (or use the dashboard → MODELS):',c:'hermes model    # choose '+m.slug});
-            wire.push({t:'Restart so the gateway loads your keys:',c:'docker restart hermes'});
-            out.push({title:'Wire it up · on the droplet',body:
-                '<p class="note">SSH in as root — <code>hermes …</code> works straight from the shell (bootstrap installs a wrapper), no <code>docker compose</code> prefix needed.</p>'
+            wire.push({t:'Choose your model (or use the dashboard → MODELS):',c:'hermes model    # e.g. '+m.slug});
+            wire.push({t:'Restart so the gateway picks it up:',c:'docker restart hermes'});
+            out.push({title:'Pick your model',body:
+                '<p class="note">The installer already enabled Bitwarden, so your keys resolve from the vault — the only thing left is choosing the model. SSH in as root; <code>hermes …</code> works straight from the shell (bootstrap installs a wrapper).</p>'
                 +wire.map(function(w){return '<p class="wire">'+w.t+'</p>'+cmd(w.c);}).join('')});
 
             // 5b — Telegram pairing (approve yourself)
@@ -264,7 +265,8 @@
                 out.push({title:'Approve yourself on Telegram',body:
                     '<p>Telegram switches on automatically once <code>TELEGRAM_BOT_TOKEN</code> is in your vault — but it ignores strangers, so approve yourself:</p>'
                     +'<ul class="chk"><li><b>Message your bot</b> (e.g. “hi”) — it replies with a <b>pairing code</b>.</li><li><b>Approve that code</b> — SSH into the droplet as root, then:</li></ul>'
-                    +cmd('cd /home/hermes/hermes-agent\ndocker compose exec gateway hermes pairing approve telegram <CODE>')
+                    +cmd('cd /home/hermes/hermes-agent')
+                    +cmd('docker compose exec gateway hermes pairing approve telegram <CODE>')
                     +'<p class="note">Shortcut: <code>hermes pairing approve telegram &lt;CODE&gt;</code> also works (via the installed wrapper). Or click <b>Approve</b> in the dashboard → <b>PAIRING</b> — no SSH. Then message the bot again and it chats.</p>'});
             }
 
