@@ -129,6 +129,30 @@ log_step "Restarting the Hermes stack..."
 ( cd "$HERMES_REPO_DIR" && HOME="$HOME" docker compose restart )
 log_ok "Stack restarted"
 
+# ── Enable Bitwarden in the LIVE config ────────────────────
+# Hermes writes its own config.yaml at first boot, so the template's
+# secrets.bitwarden block is seed-once-skipped and the integration stays OFF
+# (the classic footgun). Turn it on in the running config so provider / channel
+# / KB keys actually resolve from the vault — no manual `secrets bitwarden setup`.
+if [[ -n "$BWS_TOKEN" && -n "$BWS_PROJECT" ]]; then
+    log_step "Enabling Bitwarden Secrets Manager..."
+    cd "$HERMES_REPO_DIR"
+    for _ in $(seq 1 20); do
+        if docker compose exec -T gateway hermes status >/dev/null 2>&1; then break; fi
+        sleep 2
+    done
+    docker compose exec -T gateway hermes config set secrets.bitwarden.enabled true    >/dev/null 2>&1 || true
+    docker compose exec -T gateway hermes config set secrets.bitwarden.project_id "$BWS_PROJECT" >/dev/null 2>&1 || true
+    docker compose exec -T gateway hermes secrets bitwarden install >/dev/null 2>&1 || true
+    if docker compose exec -T gateway hermes secrets bitwarden sync >/dev/null 2>&1; then
+        docker compose restart >/dev/null 2>&1 || true
+        log_ok "Bitwarden enabled — provider/channel/KB keys resolve from your vault"
+    else
+        log_warn "Enabled Bitwarden, but the first sync failed — check on the box:"
+        log_warn "  hermes secrets bitwarden status"
+    fi
+fi
+
 # ── openai-codex OAuth reminder ────────────────────────────
 DATA_DIR="${HERMES_DATA_DIR:-$HOME/.hermes}"
 if [[ -f "${DATA_DIR}/config.yaml" ]] && grep -q 'openai-codex' "${DATA_DIR}/config.yaml"; then
@@ -141,7 +165,8 @@ if [[ -f "${DATA_DIR}/config.yaml" ]] && grep -q 'openai-codex' "${DATA_DIR}/con
 fi
 
 echo ""
-echo -e "${BOLD}Done.${NC} Talk to the agent:"
-echo "  cd ~/hermes-agent && docker compose exec -T gateway hermes -z \"say hello\""
-echo "  Logs:      docker compose logs -f"
+echo -e "${BOLD}Done.${NC} Last step — pick your model, then say hello:"
+echo "  hermes model                              # choose your provider + model"
+echo "  hermes -z \"say hello\""
+echo "  Logs:      cd ~/hermes-agent && docker compose logs -f"
 echo "  Dashboard: ssh -L 9119:127.0.0.1:9119 <admin>@<ip>  # then http://localhost:9119"
