@@ -124,6 +124,17 @@ DEPLOY_ARGS=(--agent-dir "$AGENT_DIR")
 
 bash "$DEPLOYER" "${DEPLOY_ARGS[@]}"
 
+# ── Remove the bundled "obsidian" skill ────────────────────
+# Hermes ships an "obsidian" skill that assumes a DESKTOP Obsidian install
+# (~/Documents/Obsidian Vault) — which doesn't exist on a droplet. It hijacks
+# "vault"/"notes" requests and beats our knowledge-base skill (the agent goes
+# hunting for a local vault instead of using the KB). Drop its profile copy and
+# set the no-bundled-skills marker so it isn't re-seeded — other bundled skills
+# are left untouched.
+rm -rf "${HERMES_DATA_DIR:-$HOME/.hermes}/skills/note-taking/obsidian" 2>/dev/null || true
+( cd "$HERMES_REPO_DIR" && docker compose exec -T gateway hermes skills opt-out >/dev/null 2>&1 ) || true
+log_ok "Removed the bundled 'obsidian' skill — knowledge-base owns the vault"
+
 # ── Restart the stack ──────────────────────────────────────
 log_step "Restarting the Hermes stack..."
 ( cd "$HERMES_REPO_DIR" && HOME="$HOME" docker compose restart )
