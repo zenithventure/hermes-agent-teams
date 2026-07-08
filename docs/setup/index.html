@@ -263,9 +263,9 @@
             if(S.telegram){
                 out.push({title:'Approve yourself on Telegram',body:
                     '<p>Telegram switches on automatically once <code>TELEGRAM_BOT_TOKEN</code> is in your vault — but it ignores strangers, so approve yourself:</p>'
-                    +'<ul class="chk"><li><b>Message your bot</b> (e.g. “hi”) — it replies with a <b>pairing code</b>.</li><li><b>Approve that code</b> on the box:</li></ul>'
-                    +cmd('hermes pairing approve telegram <CODE>')
-                    +'<p class="note">…or just click <b>Approve</b> in the dashboard → <b>PAIRING</b> (no SSH). Then message again — it chats.</p>'});
+                    +'<ul class="chk"><li><b>Message your bot</b> (e.g. “hi”) — it replies with a <b>pairing code</b>.</li><li><b>Approve that code</b> — SSH into the droplet as root, then:</li></ul>'
+                    +cmd('cd /home/hermes/hermes-agent\ndocker compose exec gateway hermes pairing approve telegram <CODE>')
+                    +'<p class="note">Shortcut: <code>hermes pairing approve telegram &lt;CODE&gt;</code> also works (via the installed wrapper). Or click <b>Approve</b> in the dashboard → <b>PAIRING</b> — no SSH. Then message the bot again and it chats.</p>'});
             }
 
             // 6 — verify
