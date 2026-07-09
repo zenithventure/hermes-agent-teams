@@ -145,22 +145,34 @@ log_ok "Stack restarted"
 # secrets.bitwarden block is seed-once-skipped and the integration stays OFF
 # (the classic footgun). Turn it on in the running config so provider / channel
 # / KB keys actually resolve from the vault — no manual `secrets bitwarden setup`.
-if [[ -n "$BWS_TOKEN" && -n "$BWS_PROJECT" ]]; then
+if [[ -n "$BWS_TOKEN" ]]; then
     log_step "Enabling Bitwarden Secrets Manager..."
     cd "$HERMES_REPO_DIR"
     for _ in $(seq 1 20); do
         if docker compose exec -T gateway hermes status >/dev/null 2>&1; then break; fi
         sleep 2
     done
-    docker compose exec -T gateway hermes config set secrets.bitwarden.enabled true    >/dev/null 2>&1 || true
-    docker compose exec -T gateway hermes config set secrets.bitwarden.project_id "$BWS_PROJECT" >/dev/null 2>&1 || true
     docker compose exec -T gateway hermes secrets bitwarden install >/dev/null 2>&1 || true
-    if docker compose exec -T gateway hermes secrets bitwarden sync >/dev/null 2>&1; then
-        docker compose restart >/dev/null 2>&1 || true
-        log_ok "Bitwarden enabled — provider/channel/KB keys resolve from your vault"
+    # If no project id was passed (or it came through empty), discover the one
+    # the access token can reach — otherwise the whole integration silently
+    # stays off and nothing resolves.
+    if [[ -z "$BWS_PROJECT" ]]; then
+        BWS_PROJECT=$(docker compose exec -T -e "BWS_ACCESS_TOKEN=${BWS_TOKEN}" gateway /opt/data/bin/bws project list 2>/dev/null \
+            | grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1)
+    fi
+    if [[ -n "$BWS_PROJECT" ]]; then
+        docker compose exec -T gateway hermes config set secrets.bitwarden.enabled true    >/dev/null 2>&1 || true
+        docker compose exec -T gateway hermes config set secrets.bitwarden.project_id "$BWS_PROJECT" >/dev/null 2>&1 || true
+        if docker compose exec -T gateway hermes secrets bitwarden sync >/dev/null 2>&1; then
+            docker compose restart >/dev/null 2>&1 || true
+            log_ok "Bitwarden enabled (project ${BWS_PROJECT}) — keys resolve from your vault"
+        else
+            log_warn "Enabled Bitwarden, but the first sync failed — check on the box:"
+            log_warn "  hermes secrets bitwarden status"
+        fi
     else
-        log_warn "Enabled Bitwarden, but the first sync failed — check on the box:"
-        log_warn "  hermes secrets bitwarden status"
+        log_warn "Bitwarden token set but no project could be found — run on the box:"
+        log_warn "  hermes secrets bitwarden setup"
     fi
 fi
 

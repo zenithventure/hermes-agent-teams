@@ -143,11 +143,11 @@
             return '<div class="cmd"'+attr+'><pre>'+esc(display)+'</pre><button class="copy" type="button" aria-label="Copy">Copy</button></div>';
         }
         function link(h,t){return '<a href="'+h+'" target="_blank" rel="noopener">'+t+' ↗</a>';}
-        function ip(){return S.ip||'<ip>';}
+        function ip(){return S.ip||'YOUR_DROPLET_IP';}
         function installCmd(disp){
-            var tok=disp?(S.token?mask(S.token):'0.<token>'):(S.token||'0.<token>');
-            var proj=S.project||'<uuid>';
-            var repo=S.kbRepo||'<you>/<repo>';
+            var tok=disp?(S.token?mask(S.token):'0.YOUR_TOKEN'):(S.token||'0.YOUR_TOKEN');
+            var proj=S.project||'YOUR_PROJECT_ID';
+            var repo=S.kbRepo||'owner/repo';
             return 'curl -fsSL '+RAW+'/install-agent.sh \\\n  | bash -s -- --agent _template \\\n      --bws-token '+tok+' --bws-project '+proj+' \\\n      --kb-repo https://github.com/'+repo+'.git';
         }
 
@@ -208,7 +208,7 @@
             +cmd('hermes -z "say hello"')
             +'<p class="step-lbl">Telegram — message your bot; it replies with a pairing code. Approve it:</p>'
             +cmd('cd /home/hermes/hermes-agent')
-            +cmd('docker compose exec gateway hermes pairing approve telegram <CODE>')
+            +cmd('docker compose exec gateway hermes pairing approve telegram PAIRING_CODE')
             +'<p class="note">Then message the bot again and it chats. Change the model, keys, or channels anytime in the dashboard — tunnel to it: <code>ssh -L 9119:127.0.0.1:9119 root@'+ip()+'</code> → <code>http://localhost:9119</code>.</p>';}
         ];
 
