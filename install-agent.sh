@@ -176,6 +176,24 @@ if [[ -n "$BWS_TOKEN" ]]; then
     fi
 fi
 
+# ── Enable Telegram in the LIVE config (if its token is in the vault) ──
+# Same first-boot footgun as Bitwarden: Hermes rewrites config.yaml at first
+# boot, so the template's platforms.telegram block is seed-once-skipped and the
+# gateway comes up with "No messaging platforms enabled" — even though the setup
+# wizard already had you store TELEGRAM_BOT_TOKEN. Turn the channel on in the
+# running config, but only when the bot token actually resolves, so we never
+# enable a platform that can't connect.
+if [[ -n "$BWS_TOKEN" && -n "$BWS_PROJECT" ]]; then
+    cd "$HERMES_REPO_DIR"
+    if docker compose exec -T -e "BWS_ACCESS_TOKEN=${BWS_TOKEN}" gateway \
+        /opt/data/bin/bws secret list "$BWS_PROJECT" 2>/dev/null | grep -q 'TELEGRAM_BOT_TOKEN'; then
+        log_step "Enabling Telegram (bot token found in vault)..."
+        docker compose exec -T gateway hermes config set platforms.telegram.reply_to_mode first >/dev/null 2>&1 || true
+        docker compose restart >/dev/null 2>&1 || true
+        log_ok "Telegram enabled — message your bot; it replies with a pairing code to approve"
+    fi
+fi
+
 # ── openai-codex OAuth reminder ────────────────────────────
 DATA_DIR="${HERMES_DATA_DIR:-$HOME/.hermes}"
 if [[ -f "${DATA_DIR}/config.yaml" ]] && grep -q 'openai-codex' "${DATA_DIR}/config.yaml"; then

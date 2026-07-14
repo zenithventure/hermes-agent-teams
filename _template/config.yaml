@@ -46,13 +46,15 @@ secrets:
     override_existing: true
     auto_install: true
 
-# ── Messaging platforms (optional) ────────────────────────────────────
-# Leave empty for CLI + dashboard only. To enable a channel, add its token to
-# Bitwarden (named after its env var) and uncomment the block. Hermes DENIES
-# every user by default — set an allowlist (see README).
-platforms: {}
-#   telegram:
-#     reply_to_mode: "first"   # off | first | all
+# ── Messaging platforms ───────────────────────────────────────────────
+# Telegram is on by default — add TELEGRAM_BOT_TOKEN to Bitwarden (the setup
+# wizard walks you through it) and it starts on boot. Hermes DENIES every user
+# by default: message the bot, it replies with a pairing code, then approve it
+# (`hermes pairing approve telegram <code>`). To run CLI + dashboard only, set
+# `platforms: {}`. Add other channels the same way (each token in Bitwarden).
+platforms:
+  telegram:
+    reply_to_mode: "first"   # off | first | all
 
 # ── Remote MCP servers (optional) ─────────────────────────────────────
 # mcp_servers:
