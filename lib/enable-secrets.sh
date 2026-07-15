@@ -34,6 +34,11 @@ log_ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
 log_warn() { echo -e "  ${YELLOW}!${NC} $1"; }
 log_err()  { echo -e "  ${RED}✗${NC} $1"; }
 
+# Run inside a function so bash reads the WHOLE script before executing — see
+# the same guard in install-agent.sh. This entrypoint is a `curl … | bash`
+# target and calls `docker compose exec`, which reads stdin; without this the
+# piped script tail would be swallowed and the run would stop mid-way.
+main() {
 PROJECT=""
 RESTART=1
 while [[ $# -gt 0 ]]; do
@@ -122,3 +127,6 @@ if [[ "$TELEGRAM" == "1" ]]; then
 else
     log_ok "Done — Bitwarden is on. Add TELEGRAM_BOT_TOKEN to the vault and re-run to enable Telegram."
 fi
+}
+
+main "$@"
