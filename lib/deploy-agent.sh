@@ -239,7 +239,10 @@ configure_kb_auth() {
 
 # Every git call injects the helper inline (so clone works before .git exists)
 # and exports the resolved token into the env the helper reads.
-kb_git() { KB_GITHUB_TOKEN="${KB_TOKEN:-${KB_GITHUB_TOKEN:-}}" git -c credential.helper="$KB_CRED_HELPER" "$@"; }
+# GIT_TERMINAL_PROMPT=0 + </dev/null: never block on a credential prompt and
+# never read the caller's stdin — under `curl | bash` that stdin is the still-
+# unread installer script, and a prompting git would swallow it.
+kb_git() { GIT_TERMINAL_PROMPT=0 KB_GITHUB_TOKEN="${KB_TOKEN:-${KB_GITHUB_TOKEN:-}}" git -c credential.helper="$KB_CRED_HELPER" "$@" </dev/null; }
 
 seed_kb() {
     [[ -n "$KB_REPO" ]] || { log_warn "No --kb-repo — skipping knowledge base"; return; }

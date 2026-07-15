@@ -41,6 +41,15 @@ log_ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
 log_warn() { echo -e "  ${YELLOW}!${NC} $1"; }
 log_err()  { echo -e "  ${RED}✗${NC} $1"; }
 
+# ── Run the whole installer inside a function ──────────────
+# This script is delivered via `curl … | bash`, so bash reads it FROM STDIN.
+# Downstream subprocesses that touch stdin — git auth on the KB pull, or
+# `docker compose exec` — would otherwise swallow the still-unread tail of the
+# piped script, and the installer stops SILENTLY mid-run (classically right
+# after "Agent deployed", before Bitwarden/Telegram get enabled). Wrapping the
+# body in a function forces bash to parse the ENTIRE script into memory before
+# executing a single line, so nothing downstream can truncate it.
+main() {
 REPO_SLUG="${HERMES_REPO_SLUG:-zenithventure/hermes-agent-teams}"
 REPO_BRANCH="${HERMES_REPO_BRANCH:-main}"
 REPO_URL="https://github.com/${REPO_SLUG}.git"
@@ -177,3 +186,6 @@ echo "  hermes model                              # choose your provider + model
 echo "  hermes -z \"say hello\""
 echo "  Logs:      cd ~/hermes-agent && docker compose logs -f"
 echo "  Dashboard: ssh -L 9119:127.0.0.1:9119 <admin>@<ip>  # then http://localhost:9119"
+}
+
+main "$@"
