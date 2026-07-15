@@ -140,57 +140,23 @@ log_step "Restarting the Hermes stack..."
 ( cd "$HERMES_REPO_DIR" && HOME="$HOME" docker compose restart )
 log_ok "Stack restarted"
 
-# ── Enable Bitwarden in the LIVE config ────────────────────
-# Hermes writes its own config.yaml at first boot, so the template's
-# secrets.bitwarden block is seed-once-skipped and the integration stays OFF
-# (the classic footgun). Turn it on in the running config so provider / channel
-# / KB keys actually resolve from the vault — no manual `secrets bitwarden setup`.
+# ── Enable Bitwarden + Telegram in the LIVE config ─────────
+# Hermes rewrites config.yaml at first boot, so the template's
+# secrets.bitwarden and platforms.telegram blocks are seed-once-skipped and stay
+# OFF (the classic footgun: gateway boots with "No messaging platforms enabled"
+# and nothing resolves from the vault). enable-secrets.sh flips both on in the
+# running config, pulls the vault, and enables Telegram when its token resolves.
+# It's the single source of truth — re-runnable by hand if this ever fails:
+#   curl -fsSL https://raw.githubusercontent.com/${REPO_SLUG}/${REPO_BRANCH}/lib/enable-secrets.sh | bash
 if [[ -n "$BWS_TOKEN" ]]; then
-    log_step "Enabling Bitwarden Secrets Manager..."
-    cd "$HERMES_REPO_DIR"
-    for _ in $(seq 1 20); do
-        if docker compose exec -T gateway hermes status >/dev/null 2>&1; then break; fi
-        sleep 2
-    done
-    docker compose exec -T gateway hermes secrets bitwarden install >/dev/null 2>&1 || true
-    # If no project id was passed (or it came through empty), discover the one
-    # the access token can reach — otherwise the whole integration silently
-    # stays off and nothing resolves.
-    if [[ -z "$BWS_PROJECT" ]]; then
-        BWS_PROJECT=$(docker compose exec -T -e "BWS_ACCESS_TOKEN=${BWS_TOKEN}" gateway /opt/data/bin/bws project list 2>/dev/null \
-            | grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1)
-    fi
-    if [[ -n "$BWS_PROJECT" ]]; then
-        docker compose exec -T gateway hermes config set secrets.bitwarden.enabled true    >/dev/null 2>&1 || true
-        docker compose exec -T gateway hermes config set secrets.bitwarden.project_id "$BWS_PROJECT" >/dev/null 2>&1 || true
-        if docker compose exec -T gateway hermes secrets bitwarden sync >/dev/null 2>&1; then
-            docker compose restart >/dev/null 2>&1 || true
-            log_ok "Bitwarden enabled (project ${BWS_PROJECT}) — keys resolve from your vault"
-        else
-            log_warn "Enabled Bitwarden, but the first sync failed — check on the box:"
-            log_warn "  hermes secrets bitwarden status"
-        fi
+    ENABLER="$(dirname "$DEPLOYER")/enable-secrets.sh"
+    if [[ -f "$ENABLER" ]]; then
+        ENABLE_ARGS=()
+        [[ -n "$BWS_PROJECT" ]] && ENABLE_ARGS+=(--project "$BWS_PROJECT")
+        HERMES_REPO_DIR="$HERMES_REPO_DIR" bash "$ENABLER" "${ENABLE_ARGS[@]}" \
+            || log_warn "Auto-enable did not complete — re-run enable-secrets.sh on the box (see README)."
     else
-        log_warn "Bitwarden token set but no project could be found — run on the box:"
-        log_warn "  hermes secrets bitwarden setup"
-    fi
-fi
-
-# ── Enable Telegram in the LIVE config (if its token is in the vault) ──
-# Same first-boot footgun as Bitwarden: Hermes rewrites config.yaml at first
-# boot, so the template's platforms.telegram block is seed-once-skipped and the
-# gateway comes up with "No messaging platforms enabled" — even though the setup
-# wizard already had you store TELEGRAM_BOT_TOKEN. Turn the channel on in the
-# running config, but only when the bot token actually resolves, so we never
-# enable a platform that can't connect.
-if [[ -n "$BWS_TOKEN" && -n "$BWS_PROJECT" ]]; then
-    cd "$HERMES_REPO_DIR"
-    if docker compose exec -T -e "BWS_ACCESS_TOKEN=${BWS_TOKEN}" gateway \
-        /opt/data/bin/bws secret list "$BWS_PROJECT" 2>/dev/null | grep -q 'TELEGRAM_BOT_TOKEN'; then
-        log_step "Enabling Telegram (bot token found in vault)..."
-        docker compose exec -T gateway hermes config set platforms.telegram.reply_to_mode first >/dev/null 2>&1 || true
-        docker compose restart >/dev/null 2>&1 || true
-        log_ok "Telegram enabled — message your bot; it replies with a pairing code to approve"
+        log_warn "enable-secrets.sh not found next to deploy-agent.sh — skipping auto-enable."
     fi
 fi
 
