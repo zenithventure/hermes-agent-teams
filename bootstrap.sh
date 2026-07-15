@@ -54,7 +54,13 @@ banner() {
 # ── Parse Arguments ────────────────────────────────────────
 ADMIN_USER=""
 SSH_KEY=""
-HERMES_REF="main"
+# Build from the last stable hermes-agent RELEASE tag, not `main`. `main` is
+# bleeding edge — a fresh install would inherit whatever unreleased state
+# upstream is in, including same-day regressions. (v2026.7.7.2 predates the
+# python-telegram-bot 22.6 `do_request` monkeypatch that breaks Telegram
+# startup on `main`.) Override with `--ref main` (or a newer tag) once upstream
+# ships a release with the fix.
+HERMES_REF="v2026.7.7.2"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
