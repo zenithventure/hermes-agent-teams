@@ -89,6 +89,12 @@ Auth just works: the remote is HTTPS and a git credential helper reads the
 never handle the token. Push after every ingest so no knowledge is lost if the
 droplet dies. Never commit secrets to the KB.
 
+**If a push or pull fails to authenticate** (`authentication failed`, `bad
+credentials`, `Password authentication is not supported`): do **not** work
+around it — no SSH, no token in the URL, no `gh`, and never ask for a token in
+chat. The vault token is missing/expired/rotated; getting it refreshed is an
+admin task. Follow the `credentials` skill and hand your human the fix there.
+
 ## Guardrails
 
 - **Raw sources are immutable** — never modify files under `raw/`.
