@@ -144,10 +144,22 @@
         }
         function link(h,t){return '<a href="'+h+'" target="_blank" rel="noopener">'+t+' ↗</a>';}
         function ip(){return S.ip||'YOUR_DROPLET_IP';}
+        // Accept whatever the user pastes — a full https://github.com/owner/name
+        // URL (with or without .git / trailing slash), an SSH remote, or plain
+        // owner/name — and reduce it to owner/name for the command below.
+        function normalizeRepo(raw){
+            var r=(raw||'').trim();
+            if(!r) return '';
+            r=r.replace(/^git@[^:]+:/i,'')                     // git@github.com:owner/name
+               .replace(/^[a-z]+:\/\/[^/]*\//i,'');            // https://github.com/  (drops scheme+host)
+            r=r.replace(/\.git$/i,'').replace(/\/+$/,'');      // drop .git and trailing slashes
+            var parts=r.split('/').filter(Boolean);
+            return parts.length>=2 ? parts[0]+'/'+parts[1] : r; // owner/name (ignore deep-link tails)
+        }
         function installCmd(disp){
             var tok=disp?(S.token?mask(S.token):'0.YOUR_TOKEN'):(S.token||'0.YOUR_TOKEN');
             var proj=S.project||'YOUR_PROJECT_ID';
-            var repo=S.kbRepo||'owner/repo';
+            var repo=normalizeRepo(S.kbRepo)||'owner/repo';
             return 'curl -fsSL '+RAW+'/install-agent.sh \\\n  | bash -s -- --agent _template \\\n      --bws-token '+tok+' --bws-project '+proj+' \\\n      --kb-repo https://github.com/'+repo+'.git';
         }
 
@@ -192,7 +204,7 @@
         function(){return ''
             +'<div class="snum">Step 4 of 5</div><h2>Install your agent</h2>'
             +'<p>First, create an <b>empty GitHub repo</b> for the knowledge base '+link('https://github.com/new','(new repo)')+' and enter it here (this fills the command below):</p>'
-            +'<div class="field'+(S.kbRepo?' saved':'')+'"><label for="kbf">KB repo (owner/name)</label><input id="kbf" type="text" placeholder="zenithventure/hermes-kb" autocomplete="off" spellcheck="false" value="'+esc(S.kbRepo)+'"></div>'
+            +'<div class="field'+(S.kbRepo?' saved':'')+'"><label for="kbf">KB repo (paste the GitHub URL, or owner/name)</label><input id="kbf" type="text" placeholder="https://github.com/zenithventure/hermes-kb" autocomplete="off" spellcheck="false" value="'+esc(S.kbRepo)+'"></div>'
             +'<p class="step-lbl">On the droplet (still SSH’d in as root), drop to the <code>hermes</code> user…</p>'
             +cmd('sudo -u hermes -i')
             +'<p class="step-lbl">…then deploy:</p>'
